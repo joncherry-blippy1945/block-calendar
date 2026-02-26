@@ -797,6 +797,18 @@ function App({ userId, userEmail }) {
 
   useEffect(()=>{ const t=setInterval(()=>setNow(new Date()),30000); return ()=>clearInterval(t); },[]);
 
+  useEffect(() => {
+  if (!userId) return;
+  return onSnapshot(
+    collection(db, 'users', userId, 'events'),
+    snap => {
+      const evs = [];
+      snap.forEach(d => evs.push(d.data()));
+      setEvents(evs.length ? evs : seedEvents());
+    }
+  );
+}, [userId]);
+
   const visibleEvs = useCallback((d)=>{
     return events.filter(e=>cats[e.cat]&&!hiddenCats.has(e.cat)&&occursOn(e,d)).sort((a,b)=>t2m(a.start)-t2m(b.start));
   },[events,cats,hiddenCats]);
