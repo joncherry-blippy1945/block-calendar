@@ -1,1 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Block Calendar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;700;800;900
+        &family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+        rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>* { box-sizing: border-box; margin: 0; padding: 0; } body { overflow: hidden; }</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Firebase setup + Google Sign-In -->
+  <script type="module">
+    import { initializeApp }
+      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot }
+      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged }
+      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+    const firebaseConfig = {
+      apiKey:            "PASTE_YOUR_API_KEY",
+      authDomain:        "PASTE_YOUR_AUTH_DOMAIN",
+      projectId:         "PASTE_YOUR_PROJECT_ID",
+      storageBucket:     "PASTE_YOUR_STORAGE_BUCKET",
+      messagingSenderId: "PASTE_YOUR_SENDER_ID",
+      appId:             "PASTE_YOUR_APP_ID"
+    };
+
+    const app      = initializeApp(firebaseConfig);
+    const db       = getFirestore(app);
+    const auth     = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    // Expose to the React app
+    window.__fb = { db, auth, provider, collection, doc,
+                    setDoc, deleteDoc, onSnapshot,
+                    signInWithPopup, onAuthStateChanged };
+  </script>
+
+  <!-- React app -->
+  <script type="text/babel" data-type="module">
+    const { useState, useEffect, useCallback, useRef } = React;
+    const { db, auth, provider, collection, doc, setDoc,
+            deleteDoc, onSnapshot, signInWithPopup,
+            onAuthStateChanged } = window.__fb;
+
+    // ── GOOGLE SIGN-IN SCREEN ──────────────────────────────────────
+    function SignInScreen() {
+      const [loading, setLoading] = React.useState(false);
+      const [error,   setError]   = React.useState('');
+      const signIn = async () => {
+        setLoading(true); setError('');
+        try { await signInWithPopup(auth, provider); }
+        catch(e) { setError('Sign-in cancelled or failed. Try again.');
+                   setLoading(false); }
+      };
+      return (
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',
+                     justifyContent:'center',height:'100vh',background:'#f5f2eb'}}>
+          <div style={{fontFamily:'Cabinet Grotesk,sans-serif',fontWeight:900,
+                       fontSize:'2.5rem',color:'#e8380d',marginBottom:8}}>BLOCKS</div>
+          <div style={{fontSize:'.9rem',color:'#8a8070',marginBottom:32}}>
+            Your personal block calendar</div>
+          <button onClick={signIn} disabled={loading}
+            style={{padding:'14px 28px',background:'#1a1714',color:'#fff',border:'none',
+                    borderRadius:10,fontFamily:'Cabinet Grotesk,sans-serif',
+                    fontWeight:800,fontSize:'1rem',cursor:'pointer'}}>
+            {loading ? 'Signing in...' : 'Sign in with Google'}
+          </button>
+          {error && <div style={{marginTop:12,color:'#e8380d',fontSize:'.8rem'}}>
+            {error}</div>}
+        </div>
+      );
+    }
+
+    // ── AUTH WRAPPER ───────────────────────────────────────────────
+    function AuthWrapper() {
+      const [user, setUser] = React.useState(undefined); // undefined = loading
+      React.useEffect(() => {
+        return onAuthStateChanged(auth, u => setUser(u || null));
+      }, []);
+      if (user === undefined) return (
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',
+                     height:'100vh',background:'#f5f2eb',
+                     fontFamily:'Cabinet Grotesk,sans-serif',color:'#8a8070'}}>
+          Loading…
+        </div>
+      );
+      if (!user) return <SignInScreen />;
+      return <App userId={user.uid} userEmail={user.email} />;
+    }
+
+    // ── PASTE YOUR block-calendar.jsx CODE HERE ────────────────────
+    // (everything EXCEPT the first import line and last export line)
+    //
+    // The App component receives two props:
+    //   userId    — Firebase UID, used as the Firestore path
+    //   userEmail — shown in the top bar so you know you're signed in
+    //
+    // In your App() function signature, change:
+    //   export default function App() {
+    // to:
+    //   function App({ userId, userEmail }) {
+    //
+    // Then find the saveEvent / deleteEvent functions and update them
+    // to write to Firestore using userId. See the Firestore section
+    // of this guide for the exact code snippet.
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AuthWrapper />);
+  </script>
+</body>
+</html>
 
