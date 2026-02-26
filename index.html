@@ -425,23 +425,6 @@ function BlockModal({ev, date, cats, onSave, onDelete, onClose}) {
     </div>
   );
 }
-
-// ─── NFC SUMMARY MODAL ───────────────────────────────────────────────────────
-function NfcModal({events, cats, taskStates, onClose}) {
-  const [copied, setCopied] = useState(false);
-
-  const todayStr  = fmtDate(today0());
-  const nowMin    = new Date().getHours()*60+new Date().getMinutes();
-  const todayEvs  = events
-    .filter(e=>cats[e.cat]&&occursOn(e,today0()))
-    .sort((a,b)=>t2m(a.start)-t2m(b.start));
-
-  const getTasksFor = (ev) => {
-    const key=`${ev.id}_${todayStr}`, base=ev.tasks||[], saved=taskStates[key];
-    if(!saved) return base;
-    return base.map(t=>{ const s=saved.find(x=>x.id===t.id); return s?{...t,done:s.done}:t; });
-  };
-
   // Remaining = future blocks + unchecked tasks in current/future blocks
   const remaining = todayEvs
     .filter(ev=>t2m(ev.end)>nowMin)
@@ -1168,21 +1151,6 @@ const deleteEvent = async (id) => {
     </div>
   );
 }
-
-    //
-    // The App component receives two props:
-    //   userId    — Firebase UID, used as the Firestore path
-    //   userEmail — shown in the top bar so you know you're signed in
-    //
-    // In your App() function signature, change:
-    //   export default function App() {
-    // to:
-    //   function App({ userId, userEmail }) {
-    //
-    // Then find the saveEvent / deleteEvent functions and update them
-    // to write to Firestore using userId. See the Firestore section
-    // of this guide for the exact code snippet.
-
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<AuthWrapper />);
   </script>
