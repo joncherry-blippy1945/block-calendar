@@ -117,7 +117,6 @@ function AuthWrapper() {
   return <App userId={user.uid} userEmail={user.email} />;
 }
 
-    // ── PASTE YOUR block-calendar.jsx CODE HERE ────────────────────
 // ─── DEFAULT CATEGORIES ──────────────────────────────────────────────────────
 const DEFAULT_CATS = {
   work:    { label:"Work",    icon:"💼", color:"#e8380d", bg:"#fde8e3", text:"#6b1505" },
@@ -751,9 +750,9 @@ function App({userId,userEmail}) {
       const rect=e.currentTarget.getBoundingClientRect();
       longPressRef.current=setTimeout(()=>{
         longPressRef.current=null;
-        if(navigator.vibrate) navigator.vibrate(30);
+        if(navigator.vibrate) navigator.vibrate(20);
         startDrag(ev,dateStr,clientY,rect.top);
-      },300);
+      },100);
     };
     const handlePressEnd=(e)=>{
       if(longPressRef.current){
@@ -766,7 +765,7 @@ function App({userId,userEmail}) {
 
     return (
       <div
-        style={{position:"absolute",left:4,right:4,top:isDraggingThis?(dragging.startMin-Math.floor(dragging.startMin/60)*60)/60*HH+(Math.floor(dragging.startMin/60)-HS)*HH:top,height,borderRadius:9,padding:"5px 9px",cursor:isDraggingThis?"grabbing":"grab",background:c.bg,borderLeft:`3px solid ${c.color}`,overflow:"hidden",zIndex:isDraggingThis?50:2,boxShadow:isDraggingThis?`0 8px 24px ${c.color}44`:"0 1px 3px rgba(0,0,0,.05)",opacity:isDraggingThis?.92:1,transform:isDraggingThis?"scale(1.02)":"scale(1)",transition:isDraggingThis?"none":"transform .1s",userSelect:"none",WebkitUserSelect:"none",touchAction:"none"}}
+        style={{position:"absolute",left:4,right:4,top:isDraggingThis?(dragging.startMin-Math.floor(dragging.startMin/60)*60)/60*HH+(Math.floor(dragging.startMin/60)-HS)*HH:top,height,borderRadius:9,padding:"5px 9px",cursor:isDraggingThis?"grabbing":"grab",background:c.bg,borderLeft:`3px solid ${c.color}`,overflow:"hidden",zIndex:isDraggingThis?50:2,boxShadow:isDraggingThis?`0 6px 20px ${c.color}33`:"0 1px 3px rgba(0,0,0,.05)",opacity:isDraggingThis?.95:1,transform:isDraggingThis?"scale(1.01)":"scale(1)",transition:"none",userSelect:"none",WebkitUserSelect:"none",touchAction:"none"}}
         onMouseDown={handlePressStart}
         onMouseUp={handlePressEnd}
         onTouchStart={handlePressStart}
@@ -1022,6 +1021,7 @@ function App({userId,userEmail}) {
     </div>
   );
 }
+
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<AuthWrapper />);
