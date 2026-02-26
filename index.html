@@ -81,21 +81,41 @@
     }
 
     // ── AUTH WRAPPER ───────────────────────────────────────────────
-    function AuthWrapper() {
-      const [user, setUser] = React.useState(undefined); // undefined = loading
-      React.useEffect(() => {
-        return onAuthStateChanged(auth, u => setUser(u || null));
-      }, []);
-      if (user === undefined) return (
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',
-                     height:'100vh',background:'#f5f2eb',
-                     fontFamily:'Cabinet Grotesk,sans-serif',color:'#8a8070'}}>
-          Loading…
-        </div>
-      );
-      if (!user) return <SignInScreen />;
-      return <App userId={user.uid} userEmail={user.email} />;
-    }
+function AuthWrapper() {
+  const [user, setUser] = React.useState(undefined);
+  const [denied, setDenied] = React.useState(false);
+
+  React.useEffect(() => {
+    return onAuthStateChanged(auth, async (u) => {
+      if (u && u.email !== 'PASTE_YOUR_ALLOWED_EMAIL') {
+        setDenied(true);
+        await auth.signOut();
+        setUser(null);
+      } else {
+        setDenied(false);
+        setUser(u || null);
+      }
+    });
+  }, []);
+
+  if (user === undefined) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',
+                 height:'100vh',background:'#f5f2eb',
+                 fontFamily:'Cabinet Grotesk,sans-serif',color:'#8a8070'}}>
+      Loading…
+    </div>
+  );
+  if (denied) return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',
+                 justifyContent:'center',height:'100vh',background:'#f5f2eb'}}>
+      <div style={{fontFamily:'Cabinet Grotesk,sans-serif',fontWeight:900,
+                   fontSize:'2.5rem',color:'#e8380d',marginBottom:8}}>BLOCKS</div>
+      <div style={{fontSize:'.9rem',color:'#8a8070'}}>This calendar is private.</div>
+    </div>
+  );
+  if (!user) return <SignInScreen />;
+  return <App userId={user.uid} userEmail={user.email} />;
+}
 
     // ── PASTE YOUR block-calendar.jsx CODE HERE ────────────────────
 // ─── DEFAULT CATEGORIES (user can add/edit/delete) ───────────────────────────
