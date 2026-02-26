@@ -813,8 +813,17 @@ function App({ userId, userEmail }) {
   };
 
   const saveCats=(newCats)=>{ setCats(newCats); setCatModal(false); };
-  const saveEvent=(ev)=>{ setEvents(evs=>evs.find(e=>e.id===ev.id)?evs.map(e=>e.id===ev.id?ev:e):[...evs,ev]); setModal(null); };
-  const deleteEvent=(id)=>{ setEvents(evs=>evs.filter(e=>e.id!==id)); setModal(null); };
+  const saveEvent = async (ev) => {
+  setEvents(evs => evs.find(e=>e.id===ev.id)
+    ? evs.map(e=>e.id===ev.id?ev:e) : [...evs,ev]);
+  await setDoc(doc(db,'users',userId,'events',ev.id), ev);
+  setModal(null);
+};
+const deleteEvent = async (id) => {
+  setEvents(evs=>evs.filter(e=>e.id!==id));
+  await deleteDoc(doc(db,'users',userId,'events',id));
+  setModal(null);
+};
   const openNew=(date,hour=9)=>setModal({ev:null,date,hour});
   const openEdit=(ev)=>setModal({ev,date:null,hour:null});
 
