@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Block Calendar</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;700;800;900
-        &family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
-        rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;700;800;900&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -38,7 +36,6 @@
     const auth     = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    // Expose to the React app
     window.__fb = { db, auth, provider, collection, doc,
                     setDoc, deleteDoc, onSnapshot,
                     signInWithPopup, onAuthStateChanged };
@@ -74,48 +71,47 @@
                     fontWeight:800,fontSize:'1rem',cursor:'pointer'}}>
             {loading ? 'Signing in...' : 'Sign in with Google'}
           </button>
-          {error && <div style={{marginTop:12,color:'#e8380d',fontSize:'.8rem'}}>
-            {error}</div>}
+          {error && <div style={{marginTop:12,color:'#e8380d',fontSize:'.8rem'}}>{error}</div>}
         </div>
       );
     }
 
     // ── AUTH WRAPPER ───────────────────────────────────────────────
-function AuthWrapper() {
-  const [user, setUser] = React.useState(undefined);
-  const [denied, setDenied] = React.useState(false);
+    function AuthWrapper() {
+      const [user, setUser] = React.useState(undefined);
+      const [denied, setDenied] = React.useState(false);
 
-  React.useEffect(() => {
-    return onAuthStateChanged(auth, async (u) => {
-      if (u && u.email !== 'joncherry@gmail.com') {
-        setDenied(true);
-        await auth.signOut();
-        setUser(null);
-      } else {
-        setDenied(false);
-        setUser(u || null);
-      }
-    });
-  }, []);
+      React.useEffect(() => {
+        return onAuthStateChanged(auth, async (u) => {
+          if (u && u.email !== 'joncherry@gmail.com') {
+            setDenied(true);
+            await auth.signOut();
+            setUser(null);
+          } else {
+            setDenied(false);
+            setUser(u || null);
+          }
+        });
+      }, []);
 
-  if (user === undefined) return (
-    <div style={{display:'flex',alignItems:'center',justifyContent:'center',
-                 height:'100vh',background:'#f5f2eb',
-                 fontFamily:'Cabinet Grotesk,sans-serif',color:'#8a8070'}}>
-      Loading…
-    </div>
-  );
-  if (denied) return (
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',
-                 justifyContent:'center',height:'100vh',background:'#f5f2eb'}}>
-      <div style={{fontFamily:'Cabinet Grotesk,sans-serif',fontWeight:900,
-                   fontSize:'2.5rem',color:'#e8380d',marginBottom:8}}>BLOCKS</div>
-      <div style={{fontSize:'.9rem',color:'#8a8070'}}>This calendar is private.</div>
-    </div>
-  );
-  if (!user) return <SignInScreen />;
-  return <App userId={user.uid} userEmail={user.email} />;
-}
+      if (user === undefined) return (
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',
+                     height:'100vh',background:'#f5f2eb',
+                     fontFamily:'Cabinet Grotesk,sans-serif',color:'#8a8070'}}>
+          Loading…
+        </div>
+      );
+      if (denied) return (
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',
+                     justifyContent:'center',height:'100vh',background:'#f5f2eb'}}>
+          <div style={{fontFamily:'Cabinet Grotesk,sans-serif',fontWeight:900,
+                       fontSize:'2.5rem',color:'#e8380d',marginBottom:8}}>BLOCKS</div>
+          <div style={{fontSize:'.9rem',color:'#8a8070'}}>This calendar is private.</div>
+        </div>
+      );
+      if (!user) return <SignInScreen />;
+      return <App userId={user.uid} userEmail={user.email} />;
+    }
 
 // ─── DEFAULT CATEGORIES ──────────────────────────────────────────────────────
 const DEFAULT_CATS = {
@@ -444,7 +440,244 @@ function BlockModal({ev,date,cats,onSave,onDelete,onClose,isOverride,overrideDat
   );
 }
 
-// ─── NFC MODAL ───────────────────────────────────────────────────────────────
+// ─── BACKLOG ITEM MODAL ──────────────────────────────────────────────────────
+function BacklogItemModal({item,cats,onSave,onDelete,onSchedule,onClose}) {
+  const isEdit=!!item;
+  const firstCat=Object.keys(cats)[0]||"work";
+  const [title,setTitle]=useState(item?.title||"");
+  const [cat,setCat]=useState(item?.cat||firstCat);
+  const [durationHrs,setDurationHrs]=useState(item?.durationHrs??1);
+  const [durationMins,setDurationMins]=useState(item?.durationMins??0);
+  const [repeat,setRepeat]=useState(item?.repeat||"none");
+  const [weekdays,setWeekdays]=useState(item?.weekdays||[]);
+  const [notes,setNotes]=useState(item?.notes||"");
+  const [tasks,setTasks]=useState(item?.tasks?[...item.tasks]:[]);
+  const [newTask,setNewTask]=useState("");
+  const activeCat=cats[cat]?cat:firstCat;
+  const addTask=()=>{ if(!newTask.trim())return; setTasks(t=>[...t,{id:uid(),text:newTask.trim(),done:false}]);setNewTask(""); };
+  const toggleWd=(d)=>setWeekdays(ws=>ws.includes(d)?ws.filter(x=>x!==d):[...ws,d].sort());
+
+  const handleSave=()=>{
+    onSave({id:item?.id||uid(),title,cat:activeCat,durationHrs:Number(durationHrs),durationMins:Number(durationMins),repeat,weekdays:repeat==="daily"?weekdays:[],notes,tasks:tasks.filter(t=>t.text.trim())});
+  };
+
+  const totalMins=Number(durationHrs)*60+Number(durationMins);
+  const durationLabel=`${durationHrs>0?durationHrs+"h ":""}${durationMins>0?durationMins+"m":""}`.trim()||"0m";
+
+  return (
+    <div style={M.overlay} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={M.sheet}>
+        <div style={M.sheetHead}>
+          <span style={M.sheetTitle}>{isEdit?"Edit Backlog Item":"New Backlog Item"}</span>
+          <button style={M.closeBtn} onClick={onClose}>✕</button>
+        </div>
+        <div style={{padding:"4px 20px 0",overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:14}}>
+          <div style={{background:"#f0f9ff",border:"1.5px solid #bae6fd",borderRadius:9,padding:"10px 13px",fontSize:".75rem",color:"#0c4a6e",marginTop:6}}>
+            📦 Backlog items have no date yet. Set a duration and category, then schedule when you're ready.
+          </div>
+
+          <div>
+            <div style={M.fieldLabel}>Title</div>
+            <input style={M.input} value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Walk dogs, Set up garden…" autoFocus />
+          </div>
+
+          <div>
+            <div style={M.fieldLabel}>Category</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7}}>
+              {Object.entries(cats).map(([k,v])=>(
+                <div key={k} onClick={()=>setCat(k)} style={{display:"flex",alignItems:"center",gap:7,padding:"9px 11px",borderRadius:9,border:`${activeCat===k?2:1.5}px solid ${activeCat===k?v.color:"#e0d9c8"}`,cursor:"pointer",fontSize:".8rem",fontWeight:600,background:activeCat===k?v.bg:"#f8f7f4",color:activeCat===k?v.text:"#1a1714"}}>
+                  <span style={{width:8,height:8,borderRadius:3,background:v.color,flexShrink:0}}></span>{v.icon} {v.label}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div style={M.fieldLabel}>Duration — <span style={{color:"#1a1714",fontWeight:800}}>{durationLabel}</span></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:6}}>
+              <div>
+                <div style={{fontSize:".62rem",color:"#8a8070",marginBottom:4}}>Hours</div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                  {[0,1,2,3,4,5,6,8].map(h=>(
+                    <button key={h} onClick={()=>setDurationHrs(h)} style={{padding:"6px 10px",borderRadius:7,border:`1.5px solid ${durationHrs===h?"#1a1714":"#e0d9c8"}`,background:durationHrs===h?"#1a1714":"#f0ece0",color:durationHrs===h?"#fff":"#1a1714",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>{h}h</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:".62rem",color:"#8a8070",marginBottom:4}}>Minutes</div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                  {[0,15,30,45].map(m=>(
+                    <button key={m} onClick={()=>setDurationMins(m)} style={{padding:"6px 10px",borderRadius:7,border:`1.5px solid ${durationMins===m?"#1a1714":"#e0d9c8"}`,background:durationMins===m?"#1a1714":"#f0ece0",color:durationMins===m?"#fff":"#1a1714",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>{m}m</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style={M.fieldLabel}>Repeat</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>
+              {[["none","One-time"],["daily","Daily"],["weekly","Weekly"],["biweekly","Every 2 wks"],["monthly","Monthly"]].map(([k,l])=>(
+                <div key={k} onClick={()=>setRepeat(k)} style={{padding:"6px 12px",borderRadius:20,border:`1.5px solid ${repeat===k?"#1a1714":"#e0d9c8"}`,background:repeat===k?"#1a1714":"#f0ece0",color:repeat===k?"#fff":"#1a1714",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>{l}</div>
+              ))}
+            </div>
+            {repeat==="daily"&&(
+              <div style={{marginTop:10}}>
+                <div style={{fontSize:".68rem",color:"#8a8070",fontWeight:600,marginBottom:7}}>Which days? <span style={{opacity:.6}}>(none = every day)</span></div>
+                <div style={{display:"flex",gap:6}}>
+                  {WEEKDAY_LABELS.map((l,i)=>(
+                    <button key={i} onClick={()=>toggleWd(i)} style={{flex:1,height:34,borderRadius:8,border:`2px solid ${weekdays.includes(i)?"#1a1714":"#e0d9c8"}`,background:weekdays.includes(i)?"#1a1714":"#f0ece0",color:weekdays.includes(i)?"#fff":"#8a8070",fontWeight:700,fontSize:".68rem",cursor:"pointer"}}>{l}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div style={M.fieldLabel}>Tasks</div>
+            <div style={{border:"1.5px solid #e0d9c8",borderRadius:9,overflow:"hidden"}}>
+              <div style={{maxHeight:100,overflowY:"auto"}}>
+                {tasks.map((t,i)=>(
+                  <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderBottom:"1px solid #f0ece0"}}>
+                    <input style={{flex:1,background:"none",border:"none",outline:"none",fontFamily:"inherit",fontSize:".85rem",color:"#1a1714"}} value={t.text} onChange={e=>setTasks(ts=>ts.map((x,j)=>j===i?{...x,text:e.target.value}:x))} />
+                    <button onClick={()=>setTasks(ts=>ts.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",color:"#c0b8a8"}}>✕</button>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"#f8f7f4"}}>
+                <input style={{flex:1,background:"none",border:"none",outline:"none",fontFamily:"inherit",fontSize:".82rem",color:"#1a1714"}} value={newTask} onChange={e=>setNewTask(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addTask()} placeholder="Add task…" />
+                <button onClick={addTask} style={{background:"#1a1714",color:"#fff",border:"none",borderRadius:5,padding:"4px 10px",fontSize:".75rem",fontWeight:700,cursor:"pointer"}}>＋</button>
+              </div>
+            </div>
+          </div>
+
+          <div style={{paddingBottom:4}}>
+            <div style={M.fieldLabel}>Notes</div>
+            <textarea style={{...M.input,resize:"vertical",minHeight:48}} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="e.g. Wait until warmer, bring supplies…" rows={2} />
+          </div>
+        </div>
+        <div style={M.sheetFoot}>
+          <button style={M.secBtn} onClick={onClose}>Cancel</button>
+          {isEdit&&<button style={{...M.secBtn,color:"#e8380d",borderColor:"#fde8e3"}} onClick={()=>onDelete(item.id)}>Delete</button>}
+          {isEdit&&<button style={{...M.secBtn,color:"#0ea66b",borderColor:"#dff5ec",fontWeight:700}} onClick={()=>onSchedule(item)}>📅 Schedule</button>}
+          <button style={M.priBtn} onClick={handleSave}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── BACKLOG PANEL ───────────────────────────────────────────────────────────
+function BacklogPanel({backlog,cats,onNew,onEdit,onSchedule,isMobile}) {
+  return (
+    <div style={{flex:1,overflowY:"auto",background:"#f5f2eb",display:"flex",flexDirection:"column"}}>
+      <div style={{padding:"14px 16px 10px",background:"#fff",borderBottom:"1.5px solid #e8e4dc",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div>
+          <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1rem",letterSpacing:"-.02em"}}>📦 Backlog</div>
+          <div style={{fontSize:".62rem",color:"#8a8070",marginTop:2}}>Blocks without a date — schedule when ready</div>
+        </div>
+        <button onClick={onNew} style={{height:32,padding:"0 14px",background:"#e8380d",color:"#fff",border:"none",borderRadius:8,fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".8rem",cursor:"pointer"}}>＋ Add</button>
+      </div>
+
+      <div style={{padding:14,display:"flex",flexDirection:"column",gap:10}}>
+        {backlog.length===0&&(
+          <div style={{textAlign:"center",padding:"40px 20px",color:"#8a8070"}}>
+            <div style={{fontSize:"2rem",marginBottom:8}}>📦</div>
+            <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".9rem",marginBottom:4}}>Backlog is empty</div>
+            <div style={{fontSize:".75rem"}}>Add blocks you want to do but haven't scheduled yet</div>
+          </div>
+        )}
+        {backlog.map(item=>{
+          const c=cats[item.cat]||{color:"#999",bg:"#eee",text:"#333",icon:"",label:""};
+          const dur=`${item.durationHrs>0?item.durationHrs+"h ":""}${item.durationMins>0?item.durationMins+"m":""}`.trim();
+          const repeatLabel=item.repeat==="none"?"One-time":item.repeat==="daily"?"Daily":item.repeat==="weekly"?"Weekly":item.repeat==="biweekly"?"Every 2 wks":"Monthly";
+          return (
+            <div key={item.id} style={{background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+              <div style={{borderLeft:`4px solid ${c.color}`,padding:"12px 14px"}}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                      <span style={{background:c.bg,color:c.text,border:`1px solid ${c.color}`,borderRadius:20,padding:"2px 8px",fontSize:".62rem",fontWeight:700}}>{c.icon} {c.label}</span>
+                      {item.repeat!=="none"&&<span style={{fontSize:".6rem",color:"#8a8070",fontWeight:600}}>↻ {repeatLabel}</span>}
+                    </div>
+                    <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:".95rem",color:"#1a1714",marginBottom:4}}>{item.title}</div>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      <span style={{fontSize:".7rem",color:"#8a8070"}}>⏱ {dur||"No duration set"}</span>
+                      {item.tasks?.length>0&&<span style={{fontSize:".7rem",color:"#8a8070"}}>· {item.tasks.length} task{item.tasks.length!==1?"s":""}</span>}
+                    </div>
+                    {item.notes&&<div style={{fontSize:".7rem",color:"#8a8070",marginTop:4,fontStyle:"italic"}}>{item.notes}</div>}
+                  </div>
+                  <button onClick={()=>onEdit(item)} style={{background:"#f5f2eb",border:"none",borderRadius:7,padding:"6px 8px",cursor:"pointer",fontSize:".7rem",color:"#8a8070",fontWeight:600,flexShrink:0}}>Edit</button>
+                </div>
+              </div>
+              <button onClick={()=>onSchedule(item)} style={{width:"100%",padding:"10px",background:c.bg,border:"none",borderTop:`1px solid ${c.color}22`,cursor:"pointer",fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".8rem",color:c.color,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                📅 Schedule this block
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+// ─── SCHEDULE DATE MODAL ─────────────────────────────────────────────────────
+function ScheduleDateModal({item,startStr,endStr,cats,onConfirm,onClose}) {
+  const [pickedDate,setPickedDate]=useState(fmtDate(today0()));
+  const [start,setStart]=useState(startStr);
+  const [end,setEnd]=useState(endStr);
+  const c=cats[item.cat]||{color:"#999",bg:"#eee",text:"#333",icon:"",label:""};
+  const dur=`${item.durationHrs>0?item.durationHrs+"h ":""}${item.durationMins>0?item.durationMins+"m":""}`.trim();
+
+  const onStartChange=(val)=>{
+    setStart(val);
+    const totalMins=item.durationHrs*60+item.durationMins;
+    const sm=t2m(val);
+    const em=sm+totalMins;
+    const pad=(n)=>String(n).padStart(2,"0");
+    setEnd(`${pad(Math.floor(em/60))}:${pad(em%60)}`);
+  };
+
+  return (
+    <div style={M.overlay} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={M.sheet}>
+        <div style={M.sheetHead}>
+          <span style={M.sheetTitle}>📅 Schedule Block</span>
+          <button style={M.closeBtn} onClick={onClose}>✕</button>
+        </div>
+        <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:16}}>
+          <div style={{background:c.bg,borderLeft:`4px solid ${c.color}`,borderRadius:10,padding:"12px 14px"}}>
+            <div style={{fontSize:".62rem",fontWeight:700,textTransform:"uppercase",color:c.color,marginBottom:4}}>{c.icon} {c.label}</div>
+            <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1rem",color:c.text}}>{item.title}</div>
+            <div style={{fontSize:".72rem",color:c.color,marginTop:3}}>⏱ {dur}</div>
+            {item.notes&&<div style={{fontSize:".7rem",color:c.text,opacity:.7,marginTop:4,fontStyle:"italic"}}>{item.notes}</div>}
+          </div>
+          <div>
+            <div style={M.fieldLabel}>Date</div>
+            <input style={{...M.input,fontSize:"1rem",padding:"12px"}} type="date" value={pickedDate} onChange={e=>setPickedDate(e.target.value)} />
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div>
+              <div style={M.fieldLabel}>Start time</div>
+              <input style={M.input} type="time" value={start} onChange={e=>onStartChange(e.target.value)} />
+            </div>
+            <div>
+              <div style={M.fieldLabel}>End time</div>
+              <input style={M.input} type="time" value={end} onChange={e=>setEnd(e.target.value)} />
+            </div>
+          </div>
+          <div style={{fontSize:".68rem",color:"#8a8070",textAlign:"center"}}>You can adjust all details after scheduling</div>
+        </div>
+        <div style={M.sheetFoot}>
+          <button style={M.secBtn} onClick={onClose}>Cancel</button>
+          <button style={M.priBtn} onClick={()=>onConfirm(pickedDate,start,end)}>Schedule ›</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NfcModal({events,cats,taskStates,onClose}) {
   const [phone,setPhone]=useState("");
   const todayStr=fmtDate(today0());
@@ -545,6 +778,10 @@ function App({userId,userEmail}) {
 
   const [cats,setCats]=useState(DEFAULT_CATS);
   const [events,setEvents]=useState(seedEvents);
+  const [backlog,setBacklog]=useState([
+    {id:"b1",title:"Walk ASPCA Dogs",cat:"other",durationHrs:1,durationMins:15,repeat:"weekly",notes:"",tasks:[]},
+    {id:"b2",title:"Set Up Garden",cat:"home",durationHrs:2,durationMins:0,repeat:"none",notes:"Wait until warmer",tasks:[]},
+  ]);
   const [overrides,setOverrides]=useState({});
   const [view,setView]=useState("day");
   const [focusDate,setFocusDate]=useState(today0());
@@ -552,6 +789,9 @@ function App({userId,userEmail}) {
   const [modal,setModal]=useState(null);
   const [catModal,setCatModal]=useState(false);
   const [nfcModal,setNfcModal]=useState(false);
+  const [backlogModal,setBacklogModal]=useState(false);
+  const [backlogEditItem,setBacklogEditItem]=useState(null);
+  const [datePickerModal,setDatePickerModal]=useState(null);
   const [taskStates,setTaskStates]=useState({});
   const [now,setNow]=useState(new Date());
   const [mobileTab,setMobileTab]=useState("day");
@@ -594,6 +834,22 @@ function App({userId,userEmail}) {
   };
 
   const saveCats=(newCats)=>{setCats(newCats);setCatModal(false);};
+
+  const saveBacklogItem=(item)=>{
+    setBacklog(bl=>bl.find(b=>b.id===item.id)?bl.map(b=>b.id===item.id?item:b):[...bl,item]);
+    setBacklogEditItem(null);
+  };
+  const deleteBacklogItem=(id)=>{ setBacklog(bl=>bl.filter(b=>b.id!==id)); setBacklogEditItem(null); };
+  const scheduleFromBacklog=(item)=>{
+    const totalMins=item.durationHrs*60+item.durationMins;
+    const startHr=9, startMin=startHr*60;
+    const endMin=startMin+totalMins;
+    const pad=(n)=>String(n).padStart(2,"0");
+    const startStr=`${pad(Math.floor(startMin/60))}:${pad(startMin%60)}`;
+    const endStr=`${pad(Math.floor(endMin/60))}:${pad(endMin%60)}`;
+    setBacklogEditItem(null);
+    setDatePickerModal({item,startStr,endStr});
+  };
 
   const saveEvent=async(ev,mode,dateStr)=>{
     if(mode==="override"&&dateStr) {
@@ -953,6 +1209,7 @@ function App({userId,userEmail}) {
           <div style={{display:"flex",gap:3,background:"#f0ece0",borderRadius:7,padding:3}}>
             <button style={sx.viewTab(view==="day")} onClick={()=>setView("day")}>Day</button>
             <button style={sx.viewTab(view==="week")} onClick={()=>setView("week")}>Week</button>
+            <button style={sx.viewTab(view==="backlog")} onClick={()=>setView("backlog")}>📦</button>
           </div>
         )}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
@@ -982,11 +1239,13 @@ function App({userId,userEmail}) {
       <div style={{flex:1,display:"flex",overflow:"hidden"}}>
         {!isMobile&&(
           <>
-            {view!=="week"&&<GlancePanel/>}
-            {view!=="week"&&!sidebarOpen&&(
+            {view!=="week"&&view!=="backlog"&&<GlancePanel/>}
+            {view!=="week"&&view!=="backlog"&&!sidebarOpen&&(
               <button onClick={()=>setSidebarOpen(true)} style={{width:22,flexShrink:0,background:"#fff",border:"none",borderRight:"1.5px solid #e8e4dc",cursor:"pointer",color:"#c0b8a8",fontSize:".9rem",display:"flex",alignItems:"center",justifyContent:"center"}} title="Expand">›</button>
             )}
-            {view==="day"?<DayView/>:<WeekView/>}
+            {view==="day"&&<DayView/>}
+            {view==="week"&&<WeekView/>}
+            {view==="backlog"&&<BacklogPanel backlog={backlog} cats={cats} onNew={()=>setBacklogEditItem({})} onEdit={setBacklogEditItem} onSchedule={scheduleFromBacklog} isMobile={isMobile}/>}
           </>
         )}
         {isMobile&&(
@@ -994,6 +1253,7 @@ function App({userId,userEmail}) {
             {mobileTab==="glance"&&<GlancePanel/>}
             {mobileTab==="day"&&<DayView/>}
             {mobileTab==="week"&&<WeekView/>}
+            {mobileTab==="backlog"&&<BacklogPanel backlog={backlog} cats={cats} onNew={()=>setBacklogEditItem({})} onEdit={setBacklogEditItem} onSchedule={scheduleFromBacklog} isMobile={isMobile}/>}
           </>
         )}
       </div>
@@ -1001,10 +1261,11 @@ function App({userId,userEmail}) {
       {/* MOBILE BOTTOM NAV */}
       {isMobile&&(
         <div style={sx.mobileNav}>
-          {[["glance","📋","Today"],["day","📅","Day"],["week","🗓","Week"],["cats","⚙️","Cats"],["nfc","📡","NFC"]].map(([tab,icon,label])=>(
+          {[["glance","📋","Today"],["day","📅","Day"],["week","🗓","Week"],["backlog","📦","Backlog"],["cats","⚙️","Cats"],["nfc","📡","NFC"]].map(([tab,icon,label])=>(
             <button key={tab} style={sx.mobileNavBtn(mobileTab===tab)} onClick={()=>{
               if(tab==="cats"){setCatModal(true);}
               else if(tab==="nfc"){setNfcModal(true);}
+              else if(tab==="backlog"){setMobileTab("backlog");}
               else setMobileTab(tab);
             }}>
               <span style={{fontSize:"1.1rem"}}>{icon}</span>
@@ -1018,14 +1279,26 @@ function App({userId,userEmail}) {
       {modal&&<BlockModal ev={modal.ev} date={modal.date||(modal.ev?new Date(modal.ev.date+"T00:00:00"):focusDate)} cats={cats} onSave={saveEvent} onDelete={deleteEvent} onClose={()=>setModal(null)} isOverride={modal.isOverride} overrideDate={modal.overrideDate}/>}
       {catModal&&<CatModal cats={cats} onSave={saveCats} onClose={()=>setCatModal(false)}/>}
       {nfcModal&&<NfcModal events={events} cats={cats} taskStates={taskStates} onClose={()=>setNfcModal(false)}/>}
+      {backlogEditItem!==null&&<BacklogItemModal item={Object.keys(backlogEditItem).length?backlogEditItem:null} cats={cats} onSave={saveBacklogItem} onDelete={deleteBacklogItem} onSchedule={scheduleFromBacklog} onClose={()=>setBacklogEditItem(null)}/>}
+      {datePickerModal&&<ScheduleDateModal
+        item={datePickerModal.item}
+        startStr={datePickerModal.startStr}
+        endStr={datePickerModal.endStr}
+        cats={cats}
+        onClose={()=>setDatePickerModal(null)}
+        onConfirm={(pickedDate,start,end)=>{
+          const item=datePickerModal.item;
+          const prefilled={id:item.id+"_sched_"+uid(),title:item.title,cat:item.cat,date:pickedDate,start,end,repeat:item.repeat,weekdays:item.weekdays||[],notes:item.notes,tasks:item.tasks||[]};
+          setDatePickerModal(null);
+          setModal({ev:prefilled,date:new Date(pickedDate+"T00:00:00"),hour:9,isOverride:false,overrideDate:null});
+        }}
+      />}
     </div>
   );
 }
-
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<AuthWrapper />);
   </script>
 </body>
 </html>
-
