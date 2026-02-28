@@ -12,16 +12,10 @@
 </head>
 <body>
   <div id="root"></div>
-
-  <!-- Firebase setup + Google Sign-In -->
   <script type="module">
-    import { initializeApp }
-      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot }
-      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged }
-      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
     const firebaseConfig = {
       apiKey:            "AIzaSyCGaRGW8ke54K9CasAtFI5rTyLXQnO0OVc",
       authDomain:        "my-block-calendar.firebaseapp.com",
@@ -30,113 +24,54 @@
       messagingSenderId: "347659580635",
       appId:             "1:347659580635:web:e985ddb31a9a83e737c8fe"
     };
-
-    const app      = initializeApp(firebaseConfig);
-    const db       = getFirestore(app);
-    const auth     = getAuth(app);
-    const provider = new GoogleAuthProvider();
-
-    window.__fb = { db, auth, provider, collection, doc,
-                    setDoc, deleteDoc, onSnapshot,
-                    signInWithPopup, onAuthStateChanged };
+    const app=initializeApp(firebaseConfig);
+    const db=getFirestore(app);
+    const auth=getAuth(app);
+    const provider=new GoogleAuthProvider();
+    window.__fb={db,auth,provider,collection,doc,setDoc,deleteDoc,onSnapshot,signInWithPopup,onAuthStateChanged};
   </script>
-
-  <!-- React app -->
   <script type="text/babel" data-type="module">
-    const { useState, useEffect, useCallback, useRef } = React;
-    const { db, auth, provider, collection, doc, setDoc,
-            deleteDoc, onSnapshot, signInWithPopup,
-            onAuthStateChanged } = window.__fb;
+    const {useState,useEffect,useCallback,useRef}=React;
+    const {db,auth,provider,collection,doc,setDoc,deleteDoc,onSnapshot,signInWithPopup,onAuthStateChanged}=window.__fb;
 
-    // ── GOOGLE SIGN-IN SCREEN ──────────────────────────────────────
-    function SignInScreen() {
-      const [loading, setLoading] = React.useState(false);
-      const [error,   setError]   = React.useState('');
-      const signIn = async () => {
-        setLoading(true); setError('');
-        try { await signInWithPopup(auth, provider); }
-        catch(e) { setError('Sign-in cancelled or failed. Try again.');
-                   setLoading(false); }
-      };
-      return (
-        <div style={{display:'flex',flexDirection:'column',alignItems:'center',
-                     justifyContent:'center',height:'100vh',background:'#f5f2eb'}}>
-          <div style={{fontFamily:'Cabinet Grotesk,sans-serif',fontWeight:900,
-                       fontSize:'2.5rem',color:'#e8380d',marginBottom:8}}>BLOCKS</div>
-          <div style={{fontSize:'.9rem',color:'#8a8070',marginBottom:32}}>
-            Your personal block calendar</div>
-          <button onClick={signIn} disabled={loading}
-            style={{padding:'14px 28px',background:'#1a1714',color:'#fff',border:'none',
-                    borderRadius:10,fontFamily:'Cabinet Grotesk,sans-serif',
-                    fontWeight:800,fontSize:'1rem',cursor:'pointer'}}>
-            {loading ? 'Signing in...' : 'Sign in with Google'}
-          </button>
-          {error && <div style={{marginTop:12,color:'#e8380d',fontSize:'.8rem'}}>{error}</div>}
-        </div>
-      );
+    function SignInScreen(){
+      const [loading,setLoading]=React.useState(false);
+      const [error,setError]=React.useState('');
+      const signIn=async()=>{setLoading(true);setError('');try{await signInWithPopup(auth,provider);}catch(e){setError('Sign-in cancelled or failed. Try again.');setLoading(false);}};
+      return(<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',background:'#f5f2eb'}}>
+        <div style={{fontFamily:'Cabinet Grotesk,sans-serif',fontWeight:900,fontSize:'2.5rem',color:'#e8380d',marginBottom:8}}>BLOCKS</div>
+        <div style={{fontSize:'.9rem',color:'#8a8070',marginBottom:32}}>Your personal block calendar</div>
+        <button onClick={signIn} disabled={loading} style={{padding:'14px 28px',background:'#1a1714',color:'#fff',border:'none',borderRadius:10,fontFamily:'Cabinet Grotesk,sans-serif',fontWeight:800,fontSize:'1rem',cursor:'pointer'}}>{loading?'Signing in...':'Sign in with Google'}</button>
+        {error&&<div style={{marginTop:12,color:'#e8380d',fontSize:'.8rem'}}>{error}</div>}
+      </div>);
     }
 
-    // ── AUTH WRAPPER ───────────────────────────────────────────────
-    function AuthWrapper() {
-      const [user, setUser] = React.useState(undefined);
-      const [denied, setDenied] = React.useState(false);
-
-      React.useEffect(() => {
-        return onAuthStateChanged(auth, async (u) => {
-          if (u && u.email !== 'joncherry@gmail.com') {
-            setDenied(true);
-            await auth.signOut();
-            setUser(null);
-          } else {
-            setDenied(false);
-            setUser(u || null);
-          }
+    function AuthWrapper(){
+      const [user,setUser]=React.useState(undefined);
+      const [denied,setDenied]=React.useState(false);
+      React.useEffect(()=>{
+        return onAuthStateChanged(auth,async(u)=>{
+          if(u&&u.email!=='joncherry@gmail.com'){setDenied(true);await auth.signOut();setUser(null);}
+          else{setDenied(false);setUser(u||null);}
         });
-      }, []);
-
-      if (user === undefined) return (
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',
-                     height:'100vh',background:'#f5f2eb',
-                     fontFamily:'Cabinet Grotesk,sans-serif',color:'#8a8070'}}>
-          Loading…
-        </div>
-      );
-      if (denied) return (
-        <div style={{display:'flex',flexDirection:'column',alignItems:'center',
-                     justifyContent:'center',height:'100vh',background:'#f5f2eb'}}>
-          <div style={{fontFamily:'Cabinet Grotesk,sans-serif',fontWeight:900,
-                       fontSize:'2.5rem',color:'#e8380d',marginBottom:8}}>BLOCKS</div>
-          <div style={{fontSize:'.9rem',color:'#8a8070'}}>This calendar is private.</div>
-        </div>
-      );
-      if (!user) return <SignInScreen />;
-      return <App userId={user.uid} userEmail={user.email} />;
+      },[]);
+      if(user===undefined)return(<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#f5f2eb',fontFamily:'Cabinet Grotesk,sans-serif',color:'#8a8070'}}>Loading…</div>);
+      if(denied)return(<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',background:'#f5f2eb'}}><div style={{fontFamily:'Cabinet Grotesk,sans-serif',fontWeight:900,fontSize:'2.5rem',color:'#e8380d',marginBottom:8}}>BLOCKS</div><div style={{fontSize:'.9rem',color:'#8a8070'}}>This calendar is private.</div></div>);
+      if(!user)return <SignInScreen/>;
+      return <App userId={user.uid} userEmail={user.email}/>;
     }
 
-// ─── DEFAULT CATEGORIES ──────────────────────────────────────────────────────
-const DEFAULT_CATS = {
-  work:    { label:"Work",    icon:"💼", color:"#e8380d", bg:"#fde8e3", text:"#6b1505" },
-  home:    { label:"Home",    icon:"🏠", color:"#0ea66b", bg:"#dff5ec", text:"#084a2e" },
-  family:  { label:"Family",  icon:"❤️", color:"#c44bec", bg:"#f7e3fd", text:"#5a0e74" },
-  fitness: { label:"Fitness", icon:"🏋️", color:"#f5a800", bg:"#fff5d6", text:"#5c3d00" },
-  reno:    { label:"Reno",    icon:"🔨", color:"#1a7fe8", bg:"#e3f0fd", text:"#0a3566" },
-  other:   { label:"Other",   icon:"✨", color:"#e8680d", bg:"#fdeee3", text:"#6b2a05" },
+const DEFAULT_CATS={
+  work:{label:"Work",icon:"💼",color:"#e8380d",bg:"#fde8e3",text:"#6b1505"},
+  home:{label:"Home",icon:"🏠",color:"#0ea66b",bg:"#dff5ec",text:"#084a2e"},
+  family:{label:"Family",icon:"❤️",color:"#c44bec",bg:"#f7e3fd",text:"#5a0e74"},
+  fitness:{label:"Fitness",icon:"🏋️",color:"#f5a800",bg:"#fff5d6",text:"#5c3d00"},
+  reno:{label:"Reno",icon:"🔨",color:"#1a7fe8",bg:"#e3f0fd",text:"#0a3566"},
+  other:{label:"Other",icon:"✨",color:"#e8680d",bg:"#fdeee3",text:"#6b2a05"},
 };
-
-function textForBg(hex) {
-  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
-  return (r*0.299+g*0.587+b*0.114)>140?"#1a1714":"#ffffff";
-}
-function lighten(hex,amt=0.88) {
-  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
-  const mix=(c)=>Math.round(c+(255-c)*amt);
-  return `#${mix(r).toString(16).padStart(2,"0")}${mix(g).toString(16).padStart(2,"0")}${mix(b).toString(16).padStart(2,"0")}`;
-}
-function buildCat(label,icon,color) {
-  const bg=lighten(color,0.85);
-  return {label,icon,color,bg,text:textForBg(bg)};
-}
-
+function textForBg(hex){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return(r*0.299+g*0.587+b*0.114)>140?"#1a1714":"#ffffff";}
+function lighten(hex,amt=0.88){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);const mix=(c)=>Math.round(c+(255-c)*amt);return`#${mix(r).toString(16).padStart(2,"0")}${mix(g).toString(16).padStart(2,"0")}${mix(b).toString(16).padStart(2,"0")}`;}
+function buildCat(label,icon,color){const bg=lighten(color,0.85);return{label,icon,color,bg,text:textForBg(bg)};}
 const PALETTE=["#e8380d","#0ea66b","#c44bec","#f5a800","#1a7fe8","#e8680d","#14b8a6","#f43f5e","#8b5cf6","#ec4899","#84cc16","#06b6d4","#f97316","#6366f1"];
 const ICONS=["💼","🏠","❤️","🏋️","🔨","✨","📚","🎵","🧘","🎯","🌿","🐾","🍳","🚗","💻","🎨","🏃","🛒","📱","🧹"];
 const DAYS_SHORT=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -145,66 +80,35 @@ const MONTHS_S=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov
 const MONTHS_F=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const WEEKDAY_LABELS=["Su","Mo","Tu","We","Th","Fr","Sa"];
 const HS=6,HE=23,HH=58;
-
-function uid() { return Math.random().toString(36).slice(2,9); }
-function today0() { const d=new Date(); d.setHours(0,0,0,0); return d; }
-function addDays(d,n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
-function sameDay(a,b) { return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
-function isToday(d) { return sameDay(d,new Date()); }
-function monday(d) { const r=new Date(d),w=r.getDay(); r.setDate(r.getDate()-(w===0?6:w-1)); r.setHours(0,0,0,0); return r; }
-function t2m(t) { const [h,m]=t.split(":").map(Number); return h*60+m; }
-function fmtDate(d) { return d.toISOString().split("T")[0]; }
-function fmtTime(d) { return d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}); }
-function overrideKey(evId,dateStr) { return `${evId}__${dateStr}`; }
-
-function occursOn(ev,d) {
+function uid(){return Math.random().toString(36).slice(2,9);}
+function today0(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+function isToday(d){return sameDay(d,new Date());}
+function monday(d){const r=new Date(d),w=r.getDay();r.setDate(r.getDate()-(w===0?6:w-1));r.setHours(0,0,0,0);return r;}
+function t2m(t){const[h,m]=t.split(":").map(Number);return h*60+m;}
+function fmtDate(d){return d.toISOString().split("T")[0];}
+function fmtTime(d){return d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
+function overrideKey(evId,dateStr){return`${evId}__${dateStr}`;}
+function occursOn(ev,d){
   const evD=new Date(ev.date+"T00:00:00");
-  if(ev.repeat==="none") return sameDay(evD,d);
-  if(d<evD) return false;
-  if(ev.deletedDates&&ev.deletedDates.includes(fmtDate(d))) return false;
+  if(ev.repeat==="none")return sameDay(evD,d);
+  if(d<evD)return false;
+  if(ev.deletedDates&&ev.deletedDates.includes(fmtDate(d)))return false;
   const diff=Math.round((d-evD)/86400000);
-  if(ev.repeat==="daily") {
-    if(ev.weekdays&&ev.weekdays.length>0) return ev.weekdays.includes(d.getDay());
-    return true;
-  }
-  if(ev.repeat==="weekly") return diff%7===0;
-  if(ev.repeat==="biweekly") return diff%14===0;
-  if(ev.repeat==="monthly") return d.getDate()===evD.getDate();
+  if(ev.repeat==="daily"){if(ev.weekdays&&ev.weekdays.length>0)return ev.weekdays.includes(d.getDay());return true;}
+  if(ev.repeat==="weekly")return diff%7===0;
+  if(ev.repeat==="biweekly")return diff%14===0;
+  if(ev.repeat==="monthly")return d.getDate()===evD.getDate();
   return false;
 }
-
-function getEffectiveEvent(ev,dateStr,overrides) {
-  const key=overrideKey(ev.id,dateStr);
-  return overrides&&overrides[key] ? {...ev,...overrides[key]} : ev;
-}
-
-function hourHits(evs,hr,cats) {
-  const res=[];
-  for(const ev of evs) {
-    if(!cats[ev.cat]) continue;
-    const sm=t2m(ev.start),em=t2m(ev.end);
-    const overlap=Math.min(em,(hr+1)*60)-Math.max(sm,hr*60);
-    if(overlap>0) res.push({ev,color:cats[ev.cat].color,weight:overlap});
-  }
-  return res;
-}
-function gutterBg(hits) {
-  if(!hits.length) return "#f5f2eb";
-  if(hits.length===1) return hits[0].color+"18";
-  const total=hits.reduce((s,h)=>s+h.weight,0);
-  let pct=0; const stops=[];
-  hits.forEach(({color,weight})=>{
-    const s=Math.round((pct/total)*100); pct+=weight;
-    const e=Math.round((pct/total)*100);
-    stops.push(`${color}28 ${s}%`,`${color}28 ${e}%`);
-  });
-  return `linear-gradient(to bottom,${stops.join(",")})`;
-}
-function dominantHit(hits) { return hits.reduce((a,b)=>b.weight>a.weight?b:a,hits[0]||null); }
-
-function seedEvents() {
+function getEffectiveEvent(ev,dateStr,overrides){const key=overrideKey(ev.id,dateStr);return overrides&&overrides[key]?{...ev,...overrides[key]}:ev;}
+function hourHits(evs,hr,cats){const res=[];for(const ev of evs){if(!cats[ev.cat])continue;const sm=t2m(ev.start),em=t2m(ev.end);const overlap=Math.min(em,(hr+1)*60)-Math.max(sm,hr*60);if(overlap>0)res.push({ev,color:cats[ev.cat].color,weight:overlap});}return res;}
+function gutterBg(hits){if(!hits.length)return"#f5f2eb";if(hits.length===1)return hits[0].color+"18";const total=hits.reduce((s,h)=>s+h.weight,0);let pct=0;const stops=[];hits.forEach(({color,weight})=>{const s=Math.round((pct/total)*100);pct+=weight;const e=Math.round((pct/total)*100);stops.push(`${color}28 ${s}%`,`${color}28 ${e}%`);});return`linear-gradient(to bottom,${stops.join(",")})`;}
+function dominantHit(hits){return hits.reduce((a,b)=>b.weight>a.weight?b:a,hits[0]||null);}
+function seedEvents(){
   const td=today0(),f=fmtDate,w=monday(td),fri=addDays(w,4);
-  return [
+  return[
     {id:"e1",title:"Deep Work",cat:"work",date:f(w),start:"09:00",end:"11:00",repeat:"weekly",notes:"No meetings",tasks:[{id:"t1",text:"Review backlog",done:false},{id:"t2",text:"Write spec",done:false}],weekdays:[]},
     {id:"e2",title:"Team Standup",cat:"work",date:f(w),start:"11:00",end:"11:30",repeat:"daily",notes:"",tasks:[{id:"t3",text:"Share blockers",done:false}],weekdays:[1,2,3,4,5]},
     {id:"e3",title:"Cook Dinner",cat:"home",date:f(td),start:"17:30",end:"18:30",repeat:"daily",notes:"",tasks:[],weekdays:[]},
@@ -213,8 +117,7 @@ function seedEvents() {
   ];
 }
 
-// ─── SHARED MODAL STYLES ─────────────────────────────────────────────────────
-const M = {
+const M={
   overlay:{position:"fixed",inset:0,background:"rgba(26,23,20,.6)",zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(3px)"},
   sheet:{background:"#fff",borderRadius:"18px 18px 0 0",width:"100%",maxWidth:480,boxShadow:"0 -8px 40px rgba(0,0,0,.18)",maxHeight:"90vh",display:"flex",flexDirection:"column"},
   sheetHead:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 14px",borderBottom:"1px solid #f0ece0",flexShrink:0},
@@ -228,41 +131,27 @@ const M = {
   input:{width:"100%",background:"#f8f7f4",border:"1.5px solid #e8e4dc",borderRadius:9,color:"#1a1714",padding:"10px 12px",fontFamily:"'Instrument Sans',sans-serif",fontSize:".88rem",outline:"none",boxSizing:"border-box"},
 };
 
-// ─── CATEGORY EDITOR MODAL ───────────────────────────────────────────────────
-function CatModal({cats,onSave,onClose}) {
-  const [localCats,setLocalCats]=useState(Object.entries(cats).map(([k,v])=>({key:k,...v})));
-  const [editing,setEditing]=useState(null);
-  const [newLabel,setNewLabel]=useState("");
-  const [newIcon,setNewIcon]=useState("✨");
-  const [newColor,setNewColor]=useState("#8b5cf6");
-  const [addMode,setAddMode]=useState(false);
-
-  const startEdit=(i)=>{ const c=localCats[i]; setEditing(i);setNewLabel(c.label);setNewIcon(c.icon);setNewColor(c.color);setAddMode(false); };
-  const startAdd=()=>{ setEditing(null);setNewLabel("");setNewIcon("✨");setNewColor("#8b5cf6");setAddMode(true); };
-  const applyEdit=()=>{
-    if(!newLabel.trim()) return;
-    const built=buildCat(newLabel.trim(),newIcon,newColor);
-    if(addMode) setLocalCats(cs=>[...cs,{key:uid(),...built}]);
-    else setLocalCats(cs=>cs.map((c,i)=>i===editing?{...c,...built}:c));
-    setEditing(null);setAddMode(false);
-  };
+function CatModal({cats,onSave,onClose}){
+  const[localCats,setLocalCats]=useState(Object.entries(cats).map(([k,v])=>({key:k,...v})));
+  const[editing,setEditing]=useState(null);
+  const[newLabel,setNewLabel]=useState("");
+  const[newIcon,setNewIcon]=useState("✨");
+  const[newColor,setNewColor]=useState("#8b5cf6");
+  const[addMode,setAddMode]=useState(false);
+  const startEdit=(i)=>{const c=localCats[i];setEditing(i);setNewLabel(c.label);setNewIcon(c.icon);setNewColor(c.color);setAddMode(false);};
+  const startAdd=()=>{setEditing(null);setNewLabel("");setNewIcon("✨");setNewColor("#8b5cf6");setAddMode(true);};
+  const applyEdit=()=>{if(!newLabel.trim())return;const built=buildCat(newLabel.trim(),newIcon,newColor);if(addMode)setLocalCats(cs=>[...cs,{key:uid(),...built}]);else setLocalCats(cs=>cs.map((c,i)=>i===editing?{...c,...built}:c));setEditing(null);setAddMode(false);};
   const removeCat=(i)=>setLocalCats(cs=>cs.filter((_,j)=>j!==i));
-  const handleSave=()=>{ const out={}; localCats.forEach(({key,...rest})=>{out[key]=rest;}); onSave(out); };
+  const handleSave=()=>{const out={};localCats.forEach(({key,...rest})=>{out[key]=rest;});onSave(out);};
   const isOpen=editing!==null||addMode;
-
-  return (
+  return(
     <div style={M.overlay} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={M.sheet}>
-        <div style={M.sheetHead}>
-          <span style={M.sheetTitle}>Categories</span>
-          <button style={M.closeBtn} onClick={onClose}>✕</button>
-        </div>
+        <div style={M.sheetHead}><span style={M.sheetTitle}>Categories</span><button style={M.closeBtn} onClick={onClose}>✕</button></div>
         <div style={{padding:"0 20px 16px",overflowY:"auto",flex:1}}>
           {localCats.map((c,i)=>(
             <div key={c.key} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #f0ece0"}}>
-              <div style={{display:"flex",alignItems:"center",gap:7,padding:"5px 12px",borderRadius:20,background:c.bg,color:c.text,border:`1.5px solid ${c.color}`,fontSize:".8rem",fontWeight:700,flex:1}}>
-                {c.icon} {c.label}
-              </div>
+              <div style={{display:"flex",alignItems:"center",gap:7,padding:"5px 12px",borderRadius:20,background:c.bg,color:c.text,border:`1.5px solid ${c.color}`,fontSize:".8rem",fontWeight:700,flex:1}}>{c.icon} {c.label}</div>
               <button style={M.smBtn} onClick={()=>startEdit(i)}>Edit</button>
               {localCats.length>1&&<button style={{...M.smBtn,color:"#e8380d",borderColor:"#fde8e3"}} onClick={()=>removeCat(i)}>✕</button>}
             </div>
@@ -270,83 +159,49 @@ function CatModal({cats,onSave,onClose}) {
           {isOpen&&(
             <div style={{background:"#f9f7f4",borderRadius:12,padding:16,marginTop:12,display:"flex",flexDirection:"column",gap:12}}>
               <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".85rem"}}>{addMode?"New Category":"Edit Category"}</div>
-              <input style={M.input} value={newLabel} onChange={e=>setNewLabel(e.target.value)} placeholder="Name…" autoFocus />
-              <div>
-                <div style={M.fieldLabel}>Icon</div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>
-                  {ICONS.map(ic=>(<button key={ic} onClick={()=>setNewIcon(ic)} style={{width:34,height:34,borderRadius:8,border:`2px solid ${ic===newIcon?"#1a1714":"#e0d9c8"}`,background:ic===newIcon?"#1a1714":"#f0ece0",cursor:"pointer",fontSize:"1rem"}}>{ic}</button>))}
-                </div>
-              </div>
-              <div>
-                <div style={M.fieldLabel}>Color</div>
-                <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:4}}>
-                  {PALETTE.map(c=>(<div key={c} onClick={()=>setNewColor(c)} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",border:`3px solid ${c===newColor?"#1a1714":"transparent"}`,outline:c===newColor?"2px solid #fff":"none",outlineOffset:-4}}></div>))}
-                  <input type="color" value={newColor} onChange={e=>setNewColor(e.target.value)} style={{width:24,height:24,borderRadius:"50%",border:"none",padding:0,cursor:"pointer"}} />
-                </div>
-              </div>
-              <div style={{display:"flex",gap:8}}>
-                <button style={M.secBtn} onClick={()=>{setEditing(null);setAddMode(false);}}>Cancel</button>
-                <button style={M.priBtn} onClick={applyEdit}>{addMode?"Add":"Save"}</button>
-              </div>
+              <input style={M.input} value={newLabel} onChange={e=>setNewLabel(e.target.value)} placeholder="Name…" autoFocus/>
+              <div><div style={M.fieldLabel}>Icon</div><div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>{ICONS.map(ic=>(<button key={ic} onClick={()=>setNewIcon(ic)} style={{width:34,height:34,borderRadius:8,border:`2px solid ${ic===newIcon?"#1a1714":"#e0d9c8"}`,background:ic===newIcon?"#1a1714":"#f0ece0",cursor:"pointer",fontSize:"1rem"}}>{ic}</button>))}</div></div>
+              <div><div style={M.fieldLabel}>Color</div><div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:4}}>{PALETTE.map(c=>(<div key={c} onClick={()=>setNewColor(c)} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",border:`3px solid ${c===newColor?"#1a1714":"transparent"}`,outline:c===newColor?"2px solid #fff":"none",outlineOffset:-4}}></div>))}<input type="color" value={newColor} onChange={e=>setNewColor(e.target.value)} style={{width:24,height:24,borderRadius:"50%",border:"none",padding:0,cursor:"pointer"}}/></div></div>
+              <div style={{display:"flex",gap:8}}><button style={M.secBtn} onClick={()=>{setEditing(null);setAddMode(false);}}>Cancel</button><button style={M.priBtn} onClick={applyEdit}>{addMode?"Add":"Save"}</button></div>
             </div>
           )}
-          {!isOpen&&(
-            <button onClick={startAdd} style={{width:"100%",marginTop:12,padding:"11px",background:"none",border:"1.5px dashed #c0b8a8",borderRadius:8,cursor:"pointer",fontSize:".82rem",color:"#8a8070",fontWeight:600}}>＋ Add Category</button>
-          )}
+          {!isOpen&&<button onClick={startAdd} style={{width:"100%",marginTop:12,padding:"11px",background:"none",border:"1.5px dashed #c0b8a8",borderRadius:8,cursor:"pointer",fontSize:".82rem",color:"#8a8070",fontWeight:600}}>＋ Add Category</button>}
         </div>
-        <div style={M.sheetFoot}>
-          <button style={M.secBtn} onClick={onClose}>Cancel</button>
-          <button style={M.priBtn} onClick={handleSave}>Save</button>
-        </div>
+        <div style={M.sheetFoot}><button style={M.secBtn} onClick={onClose}>Cancel</button><button style={M.priBtn} onClick={handleSave}>Save</button></div>
       </div>
     </div>
   );
 }
 
-// ─── BLOCK MODAL ─────────────────────────────────────────────────────────────
-function BlockModal({ev,date,cats,onSave,onDelete,onClose,isOverride,overrideDate}) {
+function BlockModal({ev,date,cats,onSave,onDelete,onClose,isOverride,overrideDate}){
   const isEdit=!!ev;
   const firstCat=Object.keys(cats)[0]||"work";
-  const [title,setTitle]=useState(ev?.title||"");
-  const [cat,setCat]=useState(ev?.cat||firstCat);
-  const [evDate,setEvDate]=useState(ev?.date||fmtDate(date||today0()));
-  const [start,setStart]=useState(ev?.start||"09:00");
-  const [end,setEnd]=useState(ev?.end||"10:00");
-  const [repeat,setRepeat]=useState(ev?.repeat||"none");
-  const [weekdays,setWeekdays]=useState(ev?.weekdays||[]);
-  const [notes,setNotes]=useState(ev?.notes||"");
-  const [tasks,setTasks]=useState(ev?.tasks?[...ev.tasks]:[]);
-  const [newTask,setNewTask]=useState("");
-  const [editScope,setEditScope]=useState("this");
-
+  const[title,setTitle]=useState(ev?.title||"");
+  const[cat,setCat]=useState(ev?.cat||firstCat);
+  const[evDate,setEvDate]=useState(ev?.date||fmtDate(date||today0()));
+  const[start,setStart]=useState(ev?.start||"09:00");
+  const[end,setEnd]=useState(ev?.end||"10:00");
+  const[repeat,setRepeat]=useState(ev?.repeat||"none");
+  const[weekdays,setWeekdays]=useState(ev?.weekdays||[]);
+  const[notes,setNotes]=useState(ev?.notes||"");
+  const[tasks,setTasks]=useState(ev?.tasks?[...ev.tasks]:[]);
+  const[newTask,setNewTask]=useState("");
+  const[editScope,setEditScope]=useState("this");
   const activeCat=cats[cat]?cat:firstCat;
-  const addTask=()=>{ if(!newTask.trim())return; setTasks(t=>[...t,{id:uid(),text:newTask.trim(),done:false}]);setNewTask(""); };
+  const addTask=()=>{if(!newTask.trim())return;setTasks(t=>[...t,{id:uid(),text:newTask.trim(),done:false}]);setNewTask("");};
   const toggleWd=(d)=>setWeekdays(ws=>ws.includes(d)?ws.filter(x=>x!==d):[...ws,d].sort());
   const isRepeating=isEdit&&ev.repeat!=="none";
-
   const handleSave=()=>{
     const base={id:ev?.id||uid(),title,cat:activeCat,date:evDate,start,end,repeat,weekdays:repeat==="daily"?weekdays:[],notes,tasks:tasks.filter(t=>t.text.trim())};
-    if(isEdit&&(isOverride||(isRepeating&&editScope==="this"))) {
-      onSave(base,"override",overrideDate||evDate);
-    } else {
-      onSave(base,"replace");
-    }
+    if(isEdit&&(isOverride||(isRepeating&&editScope==="this"))){onSave(base,"override",overrideDate||evDate);}
+    else{onSave(base,"replace");}
   };
-
-  const handleDelete=()=>{
-    if(isEdit&&isRepeating&&editScope==="this") onDelete(ev.id,"this",overrideDate||evDate);
-    else onDelete(ev.id,"all");
-  };
-
-  return (
+  const handleDelete=()=>{if(isEdit&&isRepeating&&editScope==="this")onDelete(ev.id,"this",overrideDate||evDate);else onDelete(ev.id,"all");};
+  return(
     <div style={M.overlay} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={M.sheet}>
-        <div style={M.sheetHead}>
-          <span style={M.sheetTitle}>{isEdit?(isOverride?"Edit This Day":"Edit Block"):"New Block"}</span>
-          <button style={M.closeBtn} onClick={onClose}>✕</button>
-        </div>
+        <div style={M.sheetHead}><span style={M.sheetTitle}>{isEdit?(isOverride?"Edit This Day":"Edit Block"):"New Block"}</span><button style={M.closeBtn} onClick={onClose}>✕</button></div>
         <div style={{padding:"4px 20px 0",overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:14}}>
-
           {isRepeating&&!isOverride&&(
             <div style={{background:"#fff8f0",border:"1.5px solid #f5a800",borderRadius:10,padding:"12px 14px",marginTop:6}}>
               <div style={{fontSize:".68rem",fontWeight:700,color:"#5c3d00",marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>Repeating event</div>
@@ -356,263 +211,112 @@ function BlockModal({ev,date,cats,onSave,onDelete,onClose,isOverride,overrideDat
               </div>
             </div>
           )}
-
-          <div>
-            <div style={M.fieldLabel}>Title</div>
-            <input style={M.input} value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Deep work, Cook dinner…" autoFocus />
-          </div>
-
-          <div>
-            <div style={M.fieldLabel}>Category</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7}}>
-              {Object.entries(cats).map(([k,v])=>(
-                <div key={k} onClick={()=>setCat(k)} style={{display:"flex",alignItems:"center",gap:7,padding:"9px 11px",borderRadius:9,border:`${activeCat===k?2:1.5}px solid ${activeCat===k?v.color:"#e0d9c8"}`,cursor:"pointer",fontSize:".8rem",fontWeight:600,background:activeCat===k?v.bg:"#f8f7f4",color:activeCat===k?v.text:"#1a1714",transition:"all .12s"}}>
-                  <span style={{width:8,height:8,borderRadius:3,background:v.color,flexShrink:0}}></span>{v.icon} {v.label}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {(!isEdit||editScope==="all")&&(
-            <div>
-              <div style={M.fieldLabel}>Date</div>
-              <input style={M.input} type="date" value={evDate} onChange={e=>setEvDate(e.target.value)} />
-            </div>
-          )}
-
+          <div><div style={M.fieldLabel}>Title</div><input style={M.input} value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Deep work, Cook dinner…" autoFocus/></div>
+          <div><div style={M.fieldLabel}>Category</div><div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7}}>{Object.entries(cats).map(([k,v])=>(<div key={k} onClick={()=>setCat(k)} style={{display:"flex",alignItems:"center",gap:7,padding:"9px 11px",borderRadius:9,border:`${activeCat===k?2:1.5}px solid ${activeCat===k?v.color:"#e0d9c8"}`,cursor:"pointer",fontSize:".8rem",fontWeight:600,background:activeCat===k?v.bg:"#f8f7f4",color:activeCat===k?v.text:"#1a1714",transition:"all .12s"}}><span style={{width:8,height:8,borderRadius:3,background:v.color,flexShrink:0}}></span>{v.icon} {v.label}</div>))}</div></div>
+          {(!isEdit||editScope==="all")&&<div><div style={M.fieldLabel}>Date</div><input style={M.input} type="date" value={evDate} onChange={e=>setEvDate(e.target.value)}/></div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div><div style={M.fieldLabel}>Start</div><input style={M.input} type="time" value={start} onChange={e=>setStart(e.target.value)} /></div>
-            <div><div style={M.fieldLabel}>End</div><input style={M.input} type="time" value={end} onChange={e=>setEnd(e.target.value)} /></div>
+            <div><div style={M.fieldLabel}>Start</div><input style={M.input} type="time" value={start} onChange={e=>setStart(e.target.value)}/></div>
+            <div><div style={M.fieldLabel}>End</div><input style={M.input} type="time" value={end} onChange={e=>setEnd(e.target.value)}/></div>
           </div>
-
           {(!isEdit||editScope==="all")&&(
             <div>
               <div style={M.fieldLabel}>Repeat</div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>
-                {[["none","Once"],["daily","Daily"],["weekly","Weekly"],["biweekly","Every 2 wks"],["monthly","Monthly"]].map(([k,l])=>(
-                  <div key={k} onClick={()=>setRepeat(k)} style={{padding:"6px 12px",borderRadius:20,border:`1.5px solid ${repeat===k?"#1a1714":"#e0d9c8"}`,background:repeat===k?"#1a1714":"#f0ece0",color:repeat===k?"#fff":"#1a1714",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>{l}</div>
-                ))}
-              </div>
-              {repeat==="daily"&&(
-                <div style={{marginTop:10}}>
-                  <div style={{fontSize:".68rem",color:"#8a8070",fontWeight:600,marginBottom:7}}>Which days? <span style={{opacity:.6}}>(none = every day)</span></div>
-                  <div style={{display:"flex",gap:6}}>
-                    {WEEKDAY_LABELS.map((l,i)=>(
-                      <button key={i} onClick={()=>toggleWd(i)} style={{flex:1,height:34,borderRadius:8,border:`2px solid ${weekdays.includes(i)?"#1a1714":"#e0d9c8"}`,background:weekdays.includes(i)?"#1a1714":"#f0ece0",color:weekdays.includes(i)?"#fff":"#8a8070",fontWeight:700,fontSize:".68rem",cursor:"pointer"}}>{l}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>{[["none","Once"],["daily","Daily"],["weekly","Weekly"],["biweekly","Every 2 wks"],["monthly","Monthly"]].map(([k,l])=>(<div key={k} onClick={()=>setRepeat(k)} style={{padding:"6px 12px",borderRadius:20,border:`1.5px solid ${repeat===k?"#1a1714":"#e0d9c8"}`,background:repeat===k?"#1a1714":"#f0ece0",color:repeat===k?"#fff":"#1a1714",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>{l}</div>))}</div>
+              {repeat==="daily"&&(<div style={{marginTop:10}}><div style={{fontSize:".68rem",color:"#8a8070",fontWeight:600,marginBottom:7}}>Which days? <span style={{opacity:.6}}>(none = every day)</span></div><div style={{display:"flex",gap:6}}>{WEEKDAY_LABELS.map((l,i)=>(<button key={i} onClick={()=>toggleWd(i)} style={{flex:1,height:34,borderRadius:8,border:`2px solid ${weekdays.includes(i)?"#1a1714":"#e0d9c8"}`,background:weekdays.includes(i)?"#1a1714":"#f0ece0",color:weekdays.includes(i)?"#fff":"#8a8070",fontWeight:700,fontSize:".68rem",cursor:"pointer"}}>{l}</button>))}</div></div>)}
             </div>
           )}
-
-          <div>
-            <div style={M.fieldLabel}>Tasks</div>
+          <div><div style={M.fieldLabel}>Tasks</div>
             <div style={{border:"1.5px solid #e0d9c8",borderRadius:9,overflow:"hidden"}}>
-              <div style={{maxHeight:120,overflowY:"auto"}}>
-                {tasks.map((t,i)=>(
-                  <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderBottom:"1px solid #f0ece0"}}>
-                    <input type="checkbox" checked={t.done} onChange={e=>setTasks(ts=>ts.map((x,j)=>j===i?{...x,done:e.target.checked}:x))} style={{width:14,height:14,accentColor:cats[activeCat]?.color||"#e8380d"}} />
-                    <input style={{flex:1,background:"none",border:"none",outline:"none",fontFamily:"inherit",fontSize:".85rem",color:"#1a1714"}} value={t.text} onChange={e=>setTasks(ts=>ts.map((x,j)=>j===i?{...x,text:e.target.value}:x))} />
-                    <button onClick={()=>setTasks(ts=>ts.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",color:"#c0b8a8",fontSize:".9rem"}}>✕</button>
-                  </div>
-                ))}
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"#f8f7f4"}}>
-                <input style={{flex:1,background:"none",border:"none",outline:"none",fontFamily:"inherit",fontSize:".82rem",color:"#1a1714"}} value={newTask} onChange={e=>setNewTask(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addTask()} placeholder="Add task…" />
-                <button onClick={addTask} style={{background:"#1a1714",color:"#fff",border:"none",borderRadius:5,padding:"4px 10px",fontSize:".75rem",fontWeight:700,cursor:"pointer"}}>＋</button>
-              </div>
+              <div style={{maxHeight:120,overflowY:"auto"}}>{tasks.map((t,i)=>(<div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderBottom:"1px solid #f0ece0"}}><input type="checkbox" checked={t.done} onChange={e=>setTasks(ts=>ts.map((x,j)=>j===i?{...x,done:e.target.checked}:x))} style={{width:14,height:14,accentColor:cats[activeCat]?.color||"#e8380d"}}/><input style={{flex:1,background:"none",border:"none",outline:"none",fontFamily:"inherit",fontSize:".85rem",color:"#1a1714"}} value={t.text} onChange={e=>setTasks(ts=>ts.map((x,j)=>j===i?{...x,text:e.target.value}:x))}/><button onClick={()=>setTasks(ts=>ts.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",color:"#c0b8a8",fontSize:".9rem"}}>✕</button></div>))}</div>
+              <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"#f8f7f4"}}><input style={{flex:1,background:"none",border:"none",outline:"none",fontFamily:"inherit",fontSize:".82rem",color:"#1a1714"}} value={newTask} onChange={e=>setNewTask(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addTask()} placeholder="Add task…"/><button onClick={addTask} style={{background:"#1a1714",color:"#fff",border:"none",borderRadius:5,padding:"4px 10px",fontSize:".75rem",fontWeight:700,cursor:"pointer"}}>＋</button></div>
             </div>
           </div>
-
-          <div style={{paddingBottom:4}}>
-            <div style={M.fieldLabel}>Notes</div>
-            <textarea style={{...M.input,resize:"vertical",minHeight:52}} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Links, details…" rows={2} />
-          </div>
+          <div style={{paddingBottom:4}}><div style={M.fieldLabel}>Notes</div><textarea style={{...M.input,resize:"vertical",minHeight:52}} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Links, details…" rows={2}/></div>
         </div>
-        <div style={M.sheetFoot}>
-          <button style={M.secBtn} onClick={onClose}>Cancel</button>
-          {isEdit&&<button style={{...M.secBtn,color:"#e8380d",borderColor:"#fde8e3"}} onClick={handleDelete}>Delete</button>}
-          <button style={M.priBtn} onClick={handleSave}>Save</button>
-        </div>
+        <div style={M.sheetFoot}><button style={M.secBtn} onClick={onClose}>Cancel</button>{isEdit&&<button style={{...M.secBtn,color:"#e8380d",borderColor:"#fde8e3"}} onClick={handleDelete}>Delete</button>}<button style={M.priBtn} onClick={handleSave}>Save</button></div>
       </div>
     </div>
   );
 }
 
-// ─── BACKLOG ITEM MODAL ──────────────────────────────────────────────────────
-function BacklogItemModal({item,cats,onSave,onDelete,onSchedule,onClose}) {
+function BacklogItemModal({item,cats,onSave,onDelete,onSchedule,onClose}){
   const isEdit=!!item;
   const firstCat=Object.keys(cats)[0]||"work";
-  const [title,setTitle]=useState(item?.title||"");
-  const [cat,setCat]=useState(item?.cat||firstCat);
-  const [durationHrs,setDurationHrs]=useState(item?.durationHrs??1);
-  const [durationMins,setDurationMins]=useState(item?.durationMins??0);
-  const [repeat,setRepeat]=useState(item?.repeat||"none");
-  const [weekdays,setWeekdays]=useState(item?.weekdays||[]);
-  const [notes,setNotes]=useState(item?.notes||"");
-  const [tasks,setTasks]=useState(item?.tasks?[...item.tasks]:[]);
-  const [newTask,setNewTask]=useState("");
+  const[title,setTitle]=useState(item?.title||"");
+  const[cat,setCat]=useState(item?.cat||firstCat);
+  const[durationHrs,setDurationHrs]=useState(item?.durationHrs??1);
+  const[durationMins,setDurationMins]=useState(item?.durationMins??0);
+  const[repeat,setRepeat]=useState(item?.repeat||"none");
+  const[weekdays,setWeekdays]=useState(item?.weekdays||[]);
+  const[notes,setNotes]=useState(item?.notes||"");
+  const[tasks,setTasks]=useState(item?.tasks?[...item.tasks]:[]);
+  const[newTask,setNewTask]=useState("");
   const activeCat=cats[cat]?cat:firstCat;
-  const addTask=()=>{ if(!newTask.trim())return; setTasks(t=>[...t,{id:uid(),text:newTask.trim(),done:false}]);setNewTask(""); };
+  const addTask=()=>{if(!newTask.trim())return;setTasks(t=>[...t,{id:uid(),text:newTask.trim(),done:false}]);setNewTask("");};
   const toggleWd=(d)=>setWeekdays(ws=>ws.includes(d)?ws.filter(x=>x!==d):[...ws,d].sort());
-
-  const handleSave=()=>{
-    onSave({id:item?.id||uid(),title,cat:activeCat,durationHrs:Number(durationHrs),durationMins:Number(durationMins),repeat,weekdays:repeat==="daily"?weekdays:[],notes,tasks:tasks.filter(t=>t.text.trim())});
-  };
-
-  const totalMins=Number(durationHrs)*60+Number(durationMins);
+  const handleSave=()=>{onSave({id:item?.id||uid(),title,cat:activeCat,durationHrs:Number(durationHrs),durationMins:Number(durationMins),repeat,weekdays:repeat==="daily"?weekdays:[],notes,tasks:tasks.filter(t=>t.text.trim())});};
   const durationLabel=`${durationHrs>0?durationHrs+"h ":""}${durationMins>0?durationMins+"m":""}`.trim()||"0m";
-
-  return (
+  return(
     <div style={M.overlay} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={M.sheet}>
-        <div style={M.sheetHead}>
-          <span style={M.sheetTitle}>{isEdit?"Edit Backlog Item":"New Backlog Item"}</span>
-          <button style={M.closeBtn} onClick={onClose}>✕</button>
-        </div>
+        <div style={M.sheetHead}><span style={M.sheetTitle}>{isEdit?"Edit Backlog Item":"New Backlog Item"}</span><button style={M.closeBtn} onClick={onClose}>✕</button></div>
         <div style={{padding:"4px 20px 0",overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:14}}>
-          <div style={{background:"#f0f9ff",border:"1.5px solid #bae6fd",borderRadius:9,padding:"10px 13px",fontSize:".75rem",color:"#0c4a6e",marginTop:6}}>
-            📦 Backlog items have no date yet. Set a duration and category, then schedule when you're ready.
-          </div>
-
-          <div>
-            <div style={M.fieldLabel}>Title</div>
-            <input style={M.input} value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Walk dogs, Set up garden…" autoFocus />
-          </div>
-
-          <div>
-            <div style={M.fieldLabel}>Category</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7}}>
-              {Object.entries(cats).map(([k,v])=>(
-                <div key={k} onClick={()=>setCat(k)} style={{display:"flex",alignItems:"center",gap:7,padding:"9px 11px",borderRadius:9,border:`${activeCat===k?2:1.5}px solid ${activeCat===k?v.color:"#e0d9c8"}`,cursor:"pointer",fontSize:".8rem",fontWeight:600,background:activeCat===k?v.bg:"#f8f7f4",color:activeCat===k?v.text:"#1a1714"}}>
-                  <span style={{width:8,height:8,borderRadius:3,background:v.color,flexShrink:0}}></span>{v.icon} {v.label}
-                </div>
-              ))}
-            </div>
-          </div>
-
+          <div style={{background:"#f0f9ff",border:"1.5px solid #bae6fd",borderRadius:9,padding:"10px 13px",fontSize:".75rem",color:"#0c4a6e",marginTop:6}}>📦 Backlog items have no date yet. Set a duration and category, then schedule when ready.</div>
+          <div><div style={M.fieldLabel}>Title</div><input style={M.input} value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Walk dogs, Set up garden…" autoFocus/></div>
+          <div><div style={M.fieldLabel}>Category</div><div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7}}>{Object.entries(cats).map(([k,v])=>(<div key={k} onClick={()=>setCat(k)} style={{display:"flex",alignItems:"center",gap:7,padding:"9px 11px",borderRadius:9,border:`${activeCat===k?2:1.5}px solid ${activeCat===k?v.color:"#e0d9c8"}`,cursor:"pointer",fontSize:".8rem",fontWeight:600,background:activeCat===k?v.bg:"#f8f7f4",color:activeCat===k?v.text:"#1a1714"}}><span style={{width:8,height:8,borderRadius:3,background:v.color,flexShrink:0}}></span>{v.icon} {v.label}</div>))}</div></div>
           <div>
             <div style={M.fieldLabel}>Duration — <span style={{color:"#1a1714",fontWeight:800}}>{durationLabel}</span></div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:6}}>
-              <div>
-                <div style={{fontSize:".62rem",color:"#8a8070",marginBottom:4}}>Hours</div>
-                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                  {[0,1,2,3,4,5,6,8].map(h=>(
-                    <button key={h} onClick={()=>setDurationHrs(h)} style={{padding:"6px 10px",borderRadius:7,border:`1.5px solid ${durationHrs===h?"#1a1714":"#e0d9c8"}`,background:durationHrs===h?"#1a1714":"#f0ece0",color:durationHrs===h?"#fff":"#1a1714",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>{h}h</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div style={{fontSize:".62rem",color:"#8a8070",marginBottom:4}}>Minutes</div>
-                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                  {[0,15,30,45].map(m=>(
-                    <button key={m} onClick={()=>setDurationMins(m)} style={{padding:"6px 10px",borderRadius:7,border:`1.5px solid ${durationMins===m?"#1a1714":"#e0d9c8"}`,background:durationMins===m?"#1a1714":"#f0ece0",color:durationMins===m?"#fff":"#1a1714",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>{m}m</button>
-                  ))}
-                </div>
-              </div>
+              <div><div style={{fontSize:".62rem",color:"#8a8070",marginBottom:4}}>Hours</div><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{[0,1,2,3,4,5,6,8].map(h=>(<button key={h} onClick={()=>setDurationHrs(h)} style={{padding:"6px 10px",borderRadius:7,border:`1.5px solid ${durationHrs===h?"#1a1714":"#e0d9c8"}`,background:durationHrs===h?"#1a1714":"#f0ece0",color:durationHrs===h?"#fff":"#1a1714",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>{h}h</button>))}</div></div>
+              <div><div style={{fontSize:".62rem",color:"#8a8070",marginBottom:4}}>Minutes</div><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{[0,15,30,45].map(m=>(<button key={m} onClick={()=>setDurationMins(m)} style={{padding:"6px 10px",borderRadius:7,border:`1.5px solid ${durationMins===m?"#1a1714":"#e0d9c8"}`,background:durationMins===m?"#1a1714":"#f0ece0",color:durationMins===m?"#fff":"#1a1714",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>{m}m</button>))}</div></div>
             </div>
           </div>
-
           <div>
             <div style={M.fieldLabel}>Repeat</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>
-              {[["none","One-time"],["daily","Daily"],["weekly","Weekly"],["biweekly","Every 2 wks"],["monthly","Monthly"]].map(([k,l])=>(
-                <div key={k} onClick={()=>setRepeat(k)} style={{padding:"6px 12px",borderRadius:20,border:`1.5px solid ${repeat===k?"#1a1714":"#e0d9c8"}`,background:repeat===k?"#1a1714":"#f0ece0",color:repeat===k?"#fff":"#1a1714",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>{l}</div>
-              ))}
-            </div>
-            {repeat==="daily"&&(
-              <div style={{marginTop:10}}>
-                <div style={{fontSize:".68rem",color:"#8a8070",fontWeight:600,marginBottom:7}}>Which days? <span style={{opacity:.6}}>(none = every day)</span></div>
-                <div style={{display:"flex",gap:6}}>
-                  {WEEKDAY_LABELS.map((l,i)=>(
-                    <button key={i} onClick={()=>toggleWd(i)} style={{flex:1,height:34,borderRadius:8,border:`2px solid ${weekdays.includes(i)?"#1a1714":"#e0d9c8"}`,background:weekdays.includes(i)?"#1a1714":"#f0ece0",color:weekdays.includes(i)?"#fff":"#8a8070",fontWeight:700,fontSize:".68rem",cursor:"pointer"}}>{l}</button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>{[["none","One-time"],["daily","Daily"],["weekly","Weekly"],["biweekly","Every 2 wks"],["monthly","Monthly"]].map(([k,l])=>(<div key={k} onClick={()=>setRepeat(k)} style={{padding:"6px 12px",borderRadius:20,border:`1.5px solid ${repeat===k?"#1a1714":"#e0d9c8"}`,background:repeat===k?"#1a1714":"#f0ece0",color:repeat===k?"#fff":"#1a1714",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>{l}</div>))}</div>
+            {repeat==="daily"&&(<div style={{marginTop:10}}><div style={{fontSize:".68rem",color:"#8a8070",fontWeight:600,marginBottom:7}}>Which days?</div><div style={{display:"flex",gap:6}}>{WEEKDAY_LABELS.map((l,i)=>(<button key={i} onClick={()=>toggleWd(i)} style={{flex:1,height:34,borderRadius:8,border:`2px solid ${weekdays.includes(i)?"#1a1714":"#e0d9c8"}`,background:weekdays.includes(i)?"#1a1714":"#f0ece0",color:weekdays.includes(i)?"#fff":"#8a8070",fontWeight:700,fontSize:".68rem",cursor:"pointer"}}>{l}</button>))}</div></div>)}
           </div>
-
-          <div>
-            <div style={M.fieldLabel}>Tasks</div>
+          <div><div style={M.fieldLabel}>Tasks</div>
             <div style={{border:"1.5px solid #e0d9c8",borderRadius:9,overflow:"hidden"}}>
-              <div style={{maxHeight:100,overflowY:"auto"}}>
-                {tasks.map((t,i)=>(
-                  <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderBottom:"1px solid #f0ece0"}}>
-                    <input style={{flex:1,background:"none",border:"none",outline:"none",fontFamily:"inherit",fontSize:".85rem",color:"#1a1714"}} value={t.text} onChange={e=>setTasks(ts=>ts.map((x,j)=>j===i?{...x,text:e.target.value}:x))} />
-                    <button onClick={()=>setTasks(ts=>ts.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",color:"#c0b8a8"}}>✕</button>
-                  </div>
-                ))}
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"#f8f7f4"}}>
-                <input style={{flex:1,background:"none",border:"none",outline:"none",fontFamily:"inherit",fontSize:".82rem",color:"#1a1714"}} value={newTask} onChange={e=>setNewTask(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addTask()} placeholder="Add task…" />
-                <button onClick={addTask} style={{background:"#1a1714",color:"#fff",border:"none",borderRadius:5,padding:"4px 10px",fontSize:".75rem",fontWeight:700,cursor:"pointer"}}>＋</button>
-              </div>
+              <div style={{maxHeight:100,overflowY:"auto"}}>{tasks.map((t,i)=>(<div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderBottom:"1px solid #f0ece0"}}><input style={{flex:1,background:"none",border:"none",outline:"none",fontFamily:"inherit",fontSize:".85rem",color:"#1a1714"}} value={t.text} onChange={e=>setTasks(ts=>ts.map((x,j)=>j===i?{...x,text:e.target.value}:x))}/><button onClick={()=>setTasks(ts=>ts.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",color:"#c0b8a8"}}>✕</button></div>))}</div>
+              <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"#f8f7f4"}}><input style={{flex:1,background:"none",border:"none",outline:"none",fontFamily:"inherit",fontSize:".82rem",color:"#1a1714"}} value={newTask} onChange={e=>setNewTask(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addTask()} placeholder="Add task…"/><button onClick={addTask} style={{background:"#1a1714",color:"#fff",border:"none",borderRadius:5,padding:"4px 10px",fontSize:".75rem",fontWeight:700,cursor:"pointer"}}>＋</button></div>
             </div>
           </div>
-
-          <div style={{paddingBottom:4}}>
-            <div style={M.fieldLabel}>Notes</div>
-            <textarea style={{...M.input,resize:"vertical",minHeight:48}} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="e.g. Wait until warmer, bring supplies…" rows={2} />
-          </div>
+          <div style={{paddingBottom:4}}><div style={M.fieldLabel}>Notes</div><textarea style={{...M.input,resize:"vertical",minHeight:48}} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="e.g. Wait until warmer…" rows={2}/></div>
         </div>
-        <div style={M.sheetFoot}>
-          <button style={M.secBtn} onClick={onClose}>Cancel</button>
-          {isEdit&&<button style={{...M.secBtn,color:"#e8380d",borderColor:"#fde8e3"}} onClick={()=>onDelete(item.id)}>Delete</button>}
-          {isEdit&&<button style={{...M.secBtn,color:"#0ea66b",borderColor:"#dff5ec",fontWeight:700}} onClick={()=>onSchedule(item)}>📅 Schedule</button>}
-          <button style={M.priBtn} onClick={handleSave}>Save</button>
-        </div>
+        <div style={M.sheetFoot}><button style={M.secBtn} onClick={onClose}>Cancel</button>{isEdit&&<button style={{...M.secBtn,color:"#e8380d",borderColor:"#fde8e3"}} onClick={()=>onDelete(item.id)}>Delete</button>}{isEdit&&<button style={{...M.secBtn,color:"#0ea66b",borderColor:"#dff5ec",fontWeight:700}} onClick={()=>onSchedule(item)}>📅 Schedule</button>}<button style={M.priBtn} onClick={handleSave}>Save</button></div>
       </div>
     </div>
   );
 }
 
-// ─── BACKLOG PANEL ───────────────────────────────────────────────────────────
-function BacklogPanel({backlog,cats,onNew,onEdit,onSchedule,isMobile}) {
-  return (
+function BacklogPanel({backlog,cats,onNew,onEdit,onSchedule}){
+  return(
     <div style={{flex:1,overflowY:"auto",background:"#f5f2eb",display:"flex",flexDirection:"column"}}>
       <div style={{padding:"14px 16px 10px",background:"#fff",borderBottom:"1.5px solid #e8e4dc",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div>
-          <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1rem",letterSpacing:"-.02em"}}>📦 Backlog</div>
-          <div style={{fontSize:".62rem",color:"#8a8070",marginTop:2}}>Blocks without a date — schedule when ready</div>
-        </div>
+        <div><div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1rem",letterSpacing:"-.02em"}}>📦 Backlog</div><div style={{fontSize:".62rem",color:"#8a8070",marginTop:2}}>Blocks without a date — schedule when ready</div></div>
         <button onClick={onNew} style={{height:32,padding:"0 14px",background:"#e8380d",color:"#fff",border:"none",borderRadius:8,fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".8rem",cursor:"pointer"}}>＋ Add</button>
       </div>
-
       <div style={{padding:14,display:"flex",flexDirection:"column",gap:10}}>
-        {backlog.length===0&&(
-          <div style={{textAlign:"center",padding:"40px 20px",color:"#8a8070"}}>
-            <div style={{fontSize:"2rem",marginBottom:8}}>📦</div>
-            <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".9rem",marginBottom:4}}>Backlog is empty</div>
-            <div style={{fontSize:".75rem"}}>Add blocks you want to do but haven't scheduled yet</div>
-          </div>
-        )}
+        {backlog.length===0&&(<div style={{textAlign:"center",padding:"40px 20px",color:"#8a8070"}}><div style={{fontSize:"2rem",marginBottom:8}}>📦</div><div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".9rem",marginBottom:4}}>Backlog is empty</div><div style={{fontSize:".75rem"}}>Add blocks you want to do but haven't scheduled yet</div></div>)}
         {backlog.map(item=>{
           const c=cats[item.cat]||{color:"#999",bg:"#eee",text:"#333",icon:"",label:""};
           const dur=`${item.durationHrs>0?item.durationHrs+"h ":""}${item.durationMins>0?item.durationMins+"m":""}`.trim();
           const repeatLabel=item.repeat==="none"?"One-time":item.repeat==="daily"?"Daily":item.repeat==="weekly"?"Weekly":item.repeat==="biweekly"?"Every 2 wks":"Monthly";
-          return (
+          return(
             <div key={item.id} style={{background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
               <div style={{borderLeft:`4px solid ${c.color}`,padding:"12px 14px"}}>
                 <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
                   <div style={{flex:1}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-                      <span style={{background:c.bg,color:c.text,border:`1px solid ${c.color}`,borderRadius:20,padding:"2px 8px",fontSize:".62rem",fontWeight:700}}>{c.icon} {c.label}</span>
-                      {item.repeat!=="none"&&<span style={{fontSize:".6rem",color:"#8a8070",fontWeight:600}}>↻ {repeatLabel}</span>}
-                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}><span style={{background:c.bg,color:c.text,border:`1px solid ${c.color}`,borderRadius:20,padding:"2px 8px",fontSize:".62rem",fontWeight:700}}>{c.icon} {c.label}</span>{item.repeat!=="none"&&<span style={{fontSize:".6rem",color:"#8a8070",fontWeight:600}}>↻ {repeatLabel}</span>}</div>
                     <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:".95rem",color:"#1a1714",marginBottom:4}}>{item.title}</div>
-                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                      <span style={{fontSize:".7rem",color:"#8a8070"}}>⏱ {dur||"No duration set"}</span>
-                      {item.tasks?.length>0&&<span style={{fontSize:".7rem",color:"#8a8070"}}>· {item.tasks.length} task{item.tasks.length!==1?"s":""}</span>}
-                    </div>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontSize:".7rem",color:"#8a8070"}}>⏱ {dur||"No duration set"}</span>{item.tasks?.length>0&&<span style={{fontSize:".7rem",color:"#8a8070"}}>· {item.tasks.length} task{item.tasks.length!==1?"s":""}</span>}</div>
                     {item.notes&&<div style={{fontSize:".7rem",color:"#8a8070",marginTop:4,fontStyle:"italic"}}>{item.notes}</div>}
                   </div>
                   <button onClick={()=>onEdit(item)} style={{background:"#f5f2eb",border:"none",borderRadius:7,padding:"6px 8px",cursor:"pointer",fontSize:".7rem",color:"#8a8070",fontWeight:600,flexShrink:0}}>Edit</button>
                 </div>
               </div>
-              <button onClick={()=>onSchedule(item)} style={{width:"100%",padding:"10px",background:c.bg,border:"none",borderTop:`1px solid ${c.color}22`,cursor:"pointer",fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".8rem",color:c.color,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                📅 Schedule this block
-              </button>
+              <button onClick={()=>onSchedule(item)} style={{width:"100%",padding:"10px",background:c.bg,border:"none",borderTop:`1px solid ${c.color}22`,cursor:"pointer",fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".8rem",color:c.color,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>📅 Schedule this block</button>
             </div>
           );
         })}
@@ -621,31 +325,17 @@ function BacklogPanel({backlog,cats,onNew,onEdit,onSchedule,isMobile}) {
   );
 }
 
-
-// ─── SCHEDULE DATE MODAL ─────────────────────────────────────────────────────
-function ScheduleDateModal({item,startStr,endStr,cats,onConfirm,onClose}) {
-  const [pickedDate,setPickedDate]=useState(fmtDate(today0()));
-  const [start,setStart]=useState(startStr);
-  const [end,setEnd]=useState(endStr);
+function ScheduleDateModal({item,startStr,endStr,cats,onConfirm,onClose}){
+  const[pickedDate,setPickedDate]=useState(fmtDate(today0()));
+  const[start,setStart]=useState(startStr);
+  const[end,setEnd]=useState(endStr);
   const c=cats[item.cat]||{color:"#999",bg:"#eee",text:"#333",icon:"",label:""};
   const dur=`${item.durationHrs>0?item.durationHrs+"h ":""}${item.durationMins>0?item.durationMins+"m":""}`.trim();
-
-  const onStartChange=(val)=>{
-    setStart(val);
-    const totalMins=item.durationHrs*60+item.durationMins;
-    const sm=t2m(val);
-    const em=sm+totalMins;
-    const pad=(n)=>String(n).padStart(2,"0");
-    setEnd(`${pad(Math.floor(em/60))}:${pad(em%60)}`);
-  };
-
-  return (
+  const onStartChange=(val)=>{setStart(val);const totalMins=item.durationHrs*60+item.durationMins;const sm=t2m(val);const em=sm+totalMins;const pad=(n)=>String(n).padStart(2,"0");setEnd(`${pad(Math.floor(em/60))}:${pad(em%60)}`);};
+  return(
     <div style={M.overlay} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={M.sheet}>
-        <div style={M.sheetHead}>
-          <span style={M.sheetTitle}>📅 Schedule Block</span>
-          <button style={M.closeBtn} onClick={onClose}>✕</button>
-        </div>
+        <div style={M.sheetHead}><span style={M.sheetTitle}>📅 Schedule Block</span><button style={M.closeBtn} onClick={onClose}>✕</button></div>
         <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:16}}>
           <div style={{background:c.bg,borderLeft:`4px solid ${c.color}`,borderRadius:10,padding:"12px 14px"}}>
             <div style={{fontSize:".62rem",fontWeight:700,textTransform:"uppercase",color:c.color,marginBottom:4}}>{c.icon} {c.label}</div>
@@ -653,37 +343,25 @@ function ScheduleDateModal({item,startStr,endStr,cats,onConfirm,onClose}) {
             <div style={{fontSize:".72rem",color:c.color,marginTop:3}}>⏱ {dur}</div>
             {item.notes&&<div style={{fontSize:".7rem",color:c.text,opacity:.7,marginTop:4,fontStyle:"italic"}}>{item.notes}</div>}
           </div>
-          <div>
-            <div style={M.fieldLabel}>Date</div>
-            <input style={{...M.input,fontSize:"1rem",padding:"12px"}} type="date" value={pickedDate} onChange={e=>setPickedDate(e.target.value)} />
-          </div>
+          <div><div style={M.fieldLabel}>Date</div><input style={{...M.input,fontSize:"1rem",padding:"12px"}} type="date" value={pickedDate} onChange={e=>setPickedDate(e.target.value)}/></div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div>
-              <div style={M.fieldLabel}>Start time</div>
-              <input style={M.input} type="time" value={start} onChange={e=>onStartChange(e.target.value)} />
-            </div>
-            <div>
-              <div style={M.fieldLabel}>End time</div>
-              <input style={M.input} type="time" value={end} onChange={e=>setEnd(e.target.value)} />
-            </div>
+            <div><div style={M.fieldLabel}>Start time</div><input style={M.input} type="time" value={start} onChange={e=>onStartChange(e.target.value)}/></div>
+            <div><div style={M.fieldLabel}>End time</div><input style={M.input} type="time" value={end} onChange={e=>setEnd(e.target.value)}/></div>
           </div>
           <div style={{fontSize:".68rem",color:"#8a8070",textAlign:"center"}}>You can adjust all details after scheduling</div>
         </div>
-        <div style={M.sheetFoot}>
-          <button style={M.secBtn} onClick={onClose}>Cancel</button>
-          <button style={M.priBtn} onClick={()=>onConfirm(pickedDate,start,end)}>Schedule ›</button>
-        </div>
+        <div style={M.sheetFoot}><button style={M.secBtn} onClick={onClose}>Cancel</button><button style={M.priBtn} onClick={()=>onConfirm(pickedDate,start,end)}>Schedule ›</button></div>
       </div>
     </div>
   );
 }
 
-function NfcModal({events,cats,taskStates,onClose}) {
-  const [phone,setPhone]=useState("");
+function NfcModal({events,cats,taskStates,onClose}){
+  const[phone,setPhone]=useState("");
   const todayStr=fmtDate(today0());
   const nowMin=new Date().getHours()*60+new Date().getMinutes();
   const todayEvs=events.filter(e=>cats[e.cat]&&occursOn(e,today0())).sort((a,b)=>t2m(a.start)-t2m(b.start));
-  const getTasksFor=(ev)=>{ const key=`${ev.id}_${todayStr}`,base=ev.tasks||[],saved=taskStates[key]; if(!saved)return base; return base.map(t=>{const s=saved.find(x=>x.id===t.id);return s?{...t,done:s.done}:t;}); };
+  const getTasksFor=(ev)=>{const key=`${ev.id}_${todayStr}`,base=ev.tasks||[],saved=taskStates[key];if(!saved)return base;return base.map(t=>{const s=saved.find(x=>x.id===t.id);return s?{...t,done:s.done}:t;});};
   const remaining=todayEvs.filter(ev=>t2m(ev.end)>nowMin).map(ev=>({ev,tasks:getTasksFor(ev).filter(t=>!t.done)}));
   const now=new Date();
   const plainText=[`📅 Remaining today — ${DAYS_SHORT[now.getDay()]} ${MONTHS_S[now.getMonth()]} ${now.getDate()}`,"",
@@ -691,124 +369,82 @@ function NfcModal({events,cats,taskStates,onClose}) {
     remaining.length===0?"✅ All done for today!":"",
   ].filter(Boolean).join("\n");
   const smsHref=`sms:${phone.replace(/\D/g,"")}${phone?"&":"?"}body=${encodeURIComponent(plainText)}`;
-
-  return (
+  return(
     <div style={M.overlay} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={M.sheet}>
         <div style={M.sheetHead}><span style={M.sheetTitle}>📡 NFC Daily Reminder</span><button style={M.closeBtn} onClick={onClose}>✕</button></div>
         <div style={{padding:"12px 20px",overflowY:"auto",flex:1}}>
           <div style={{fontSize:".78rem",color:"#8a8070",marginBottom:10}}>Today's remaining blocks</div>
           {remaining.length===0&&<div style={{padding:12,background:"#dff5ec",borderRadius:8,fontSize:".82rem",color:"#084a2e",fontWeight:600,marginBottom:10}}>✅ All done!</div>}
-          {remaining.map(({ev,tasks})=>{
-            const c=cats[ev.cat]||{color:"#999",bg:"#eee",text:"#333"};
-            return (
-              <div key={ev.id} style={{padding:"10px 12px",borderRadius:9,background:c.bg,borderLeft:`3px solid ${c.color}`,marginBottom:8}}>
-                <div style={{fontWeight:700,fontSize:".85rem",color:c.text}}>{ev.title}</div>
-                <div style={{fontSize:".72rem",color:c.color,marginTop:2}}>{ev.start}–{ev.end}</div>
-                {tasks.map(t=><div key={t.id} style={{fontSize:".75rem",color:c.text,marginTop:4,opacity:.8}}>☐ {t.text}</div>)}
-              </div>
-            );
-          })}
-          <div style={{marginTop:14}}>
-            <div style={M.fieldLabel}>Your phone number (optional)</div>
-            <input style={{...M.input,marginTop:6}} type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="e.g. 5551234567" />
-          </div>
+          {remaining.map(({ev,tasks})=>{const c=cats[ev.cat]||{color:"#999",bg:"#eee",text:"#333"};return(<div key={ev.id} style={{padding:"10px 12px",borderRadius:9,background:c.bg,borderLeft:`3px solid ${c.color}`,marginBottom:8}}><div style={{fontWeight:700,fontSize:".85rem",color:c.text}}>{ev.title}</div><div style={{fontSize:".72rem",color:c.color,marginTop:2}}>{ev.start}–{ev.end}</div>{tasks.map(t=><div key={t.id} style={{fontSize:".75rem",color:c.text,marginTop:4,opacity:.8}}>☐ {t.text}</div>)}</div>);})}
+          <div style={{marginTop:14}}><div style={M.fieldLabel}>Your phone number (optional)</div><input style={{...M.input,marginTop:6}} type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="e.g. 5551234567"/></div>
         </div>
-        <div style={M.sheetFoot}>
-          <button style={M.secBtn} onClick={onClose}>Close</button>
-          <a href={smsHref} style={{...M.priBtn,textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>💬 Open in Messages</a>
-        </div>
+        <div style={M.sheetFoot}><button style={M.secBtn} onClick={onClose}>Close</button><a href={smsHref} style={{...M.priBtn,textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>💬 Open in Messages</a></div>
       </div>
     </div>
   );
 }
 
-// ─── NFC SUMMARY PAGE ────────────────────────────────────────────────────────
-function NfcSummaryPage({events,cats,taskStates}) {
+function NfcSummaryPage({events,cats,taskStates}){
   const todayStr=fmtDate(today0());
   const nowMin=new Date().getHours()*60+new Date().getMinutes();
   const todayEvs=events.filter(e=>cats[e.cat]&&occursOn(e,today0())).sort((a,b)=>t2m(a.start)-t2m(b.start));
-  const getTasksFor=(ev)=>{ const key=`${ev.id}_${todayStr}`,base=ev.tasks||[],saved=taskStates[key]; if(!saved)return base; return base.map(t=>{const s=saved.find(x=>x.id===t.id);return s?{...t,done:s.done}:t;}); };
+  const getTasksFor=(ev)=>{const key=`${ev.id}_${todayStr}`,base=ev.tasks||[],saved=taskStates[key];if(!saved)return base;return base.map(t=>{const s=saved.find(x=>x.id===t.id);return s?{...t,done:s.done}:t;});};
   const remaining=todayEvs.filter(ev=>t2m(ev.end)>nowMin).map(ev=>({ev,tasks:getTasksFor(ev).filter(t=>!t.done)}));
   const past=todayEvs.filter(ev=>t2m(ev.end)<=nowMin);
   const now=new Date();
-  return (
+  return(
     <div style={{background:"#f5f2eb",minHeight:"100vh",fontFamily:"'Instrument Sans',sans-serif"}}>
       <div style={{background:"#1a1714",color:"#fff",padding:"20px 20px 16px"}}>
-        <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1.4rem",letterSpacing:"-.04em"}}>
-          <span style={{width:9,height:9,borderRadius:"50%",background:"#e8380d",display:"inline-block",marginRight:8}}></span>BLOCKS
-        </div>
+        <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1.4rem",letterSpacing:"-.04em"}}><span style={{width:9,height:9,borderRadius:"50%",background:"#e8380d",display:"inline-block",marginRight:8}}></span>BLOCKS</div>
         <div style={{fontSize:".78rem",opacity:.6,marginTop:4}}>{DAYS_FULL[now.getDay()]}, {MONTHS_F[now.getMonth()]} {now.getDate()} · {fmtTime(now)}</div>
         <div style={{marginTop:10,fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800}}>{remaining.length} blocks · {remaining.reduce((s,r)=>s+r.tasks.length,0)} tasks left</div>
       </div>
       <div style={{padding:16}}>
         {remaining.length===0&&<div style={{background:"#dff5ec",border:"2px solid #0ea66b",borderRadius:12,padding:20,textAlign:"center",marginBottom:16}}><div style={{fontSize:"2rem"}}>✅</div><div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,color:"#084a2e"}}>All done!</div></div>}
-        {remaining.map(({ev,tasks})=>{ const c=cats[ev.cat]||{color:"#999",bg:"#eee",text:"#333",icon:"",label:""}; const isNow=t2m(ev.start)<=nowMin;
-          return (<div key={ev.id} style={{background:c.bg,borderLeft:`5px solid ${c.color}`,borderRadius:10,padding:"12px 14px",marginBottom:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-              <span style={{fontSize:".6rem",fontWeight:700,textTransform:"uppercase",color:c.color}}>{c.icon} {c.label}</span>
-              {isNow&&<span style={{background:c.color,color:"#fff",fontSize:".55rem",fontWeight:700,padding:"2px 7px",borderRadius:20}}>NOW</span>}
-              <span style={{marginLeft:"auto",fontSize:".7rem",color:c.color,fontWeight:600}}>{ev.start}–{ev.end}</span>
-            </div>
-            <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1rem",color:c.text}}>{ev.title}</div>
-            {tasks.map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderTop:`1px solid ${c.color}22`,fontSize:".82rem",color:c.text,marginTop:4}}><span style={{width:12,height:12,borderRadius:3,border:`2px solid ${c.color}`,display:"inline-block",flexShrink:0}}></span>{t.text}</div>)}
-          </div>);
-        })}
-        {past.length>0&&(<div style={{marginTop:8}}>
-          <div style={{fontSize:".62rem",fontWeight:700,textTransform:"uppercase",color:"#8a8070",marginBottom:6}}>Done earlier</div>
-          {past.map(ev=>{ const c=cats[ev.cat]||{color:"#999",icon:"",label:""}; return (
-            <div key={ev.id} style={{background:"#f0ece0",borderRadius:8,padding:"8px 12px",marginBottom:5,display:"flex",alignItems:"center",gap:8,opacity:.5}}>
-              <span>{c.icon}</span><span style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:700,fontSize:".82rem",textDecoration:"line-through"}}>{ev.title}</span>
-              <span style={{marginLeft:"auto",fontSize:".65rem",color:"#8a8070"}}>{ev.start}–{ev.end}</span>
-            </div>
-          );})}
-        </div>)}
-        <div style={{textAlign:"center",marginTop:20,fontSize:".65rem",color:"#8a8070"}}>
-          <a href={window.location.href.split("?")[0]} style={{color:"#1a1714",fontWeight:700}}>Open full calendar →</a>
-        </div>
+        {remaining.map(({ev,tasks})=>{const c=cats[ev.cat]||{color:"#999",bg:"#eee",text:"#333",icon:"",label:""};const isNow=t2m(ev.start)<=nowMin;return(<div key={ev.id} style={{background:c.bg,borderLeft:`5px solid ${c.color}`,borderRadius:10,padding:"12px 14px",marginBottom:10}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}><span style={{fontSize:".6rem",fontWeight:700,textTransform:"uppercase",color:c.color}}>{c.icon} {c.label}</span>{isNow&&<span style={{background:c.color,color:"#fff",fontSize:".55rem",fontWeight:700,padding:"2px 7px",borderRadius:20}}>NOW</span>}<span style={{marginLeft:"auto",fontSize:".7rem",color:c.color,fontWeight:600}}>{ev.start}–{ev.end}</span></div><div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1rem",color:c.text}}>{ev.title}</div>{tasks.map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderTop:`1px solid ${c.color}22`,fontSize:".82rem",color:c.text,marginTop:4}}><span style={{width:12,height:12,borderRadius:3,border:`2px solid ${c.color}`,display:"inline-block",flexShrink:0}}></span>{t.text}</div>)}</div>);})}
+        {past.length>0&&(<div style={{marginTop:8}}><div style={{fontSize:".62rem",fontWeight:700,textTransform:"uppercase",color:"#8a8070",marginBottom:6}}>Done earlier</div>{past.map(ev=>{const c=cats[ev.cat]||{color:"#999",icon:"",label:""};return(<div key={ev.id} style={{background:"#f0ece0",borderRadius:8,padding:"8px 12px",marginBottom:5,display:"flex",alignItems:"center",gap:8,opacity:.5}}><span>{c.icon}</span><span style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:700,fontSize:".82rem",textDecoration:"line-through"}}>{ev.title}</span><span style={{marginLeft:"auto",fontSize:".65rem",color:"#8a8070"}}>{ev.start}–{ev.end}</span></div>);})}</div>)}
+        <div style={{textAlign:"center",marginTop:20,fontSize:".65rem",color:"#8a8070"}}><a href={window.location.href.split("?")[0]} style={{color:"#1a1714",fontWeight:700}}>Open full calendar →</a></div>
       </div>
     </div>
   );
 }
 
-// ─── MAIN APP ─────────────────────────────────────────────────────────────────
-function App({userId,userEmail}) {
+function App({userId,userEmail}){
   const params=new URLSearchParams(window.location.search);
   const isNfcView=params.get("view")==="nfc";
-
-  const [cats,setCats]=useState(DEFAULT_CATS);
-  const [events,setEvents]=useState(seedEvents);
-  const [backlog,setBacklog]=useState([
+  const[cats,setCats]=useState(DEFAULT_CATS);
+  const[events,setEvents]=useState(seedEvents);
+  const[backlog,setBacklog]=useState([
     {id:"b1",title:"Walk ASPCA Dogs",cat:"other",durationHrs:1,durationMins:15,repeat:"weekly",notes:"",tasks:[]},
     {id:"b2",title:"Set Up Garden",cat:"home",durationHrs:2,durationMins:0,repeat:"none",notes:"Wait until warmer",tasks:[]},
   ]);
-  const [overrides,setOverrides]=useState({});
-  const [view,setView]=useState("day");
-  const [focusDate,setFocusDate]=useState(today0());
-  const [hiddenCats,setHiddenCats]=useState(new Set());
-  const [modal,setModal]=useState(null);
-  const [catModal,setCatModal]=useState(false);
-  const [nfcModal,setNfcModal]=useState(false);
-  const [backlogModal,setBacklogModal]=useState(false);
-  const [backlogEditItem,setBacklogEditItem]=useState(null);
-  const [datePickerModal,setDatePickerModal]=useState(null);
-  const [taskStates,setTaskStates]=useState({});
-  const [now,setNow]=useState(new Date());
-  const [mobileTab,setMobileTab]=useState("day");
-  const [isMobile,setIsMobile]=useState(window.innerWidth<700);
-  const [sidebarOpen,setSidebarOpen]=useState(true);
+  const[overrides,setOverrides]=useState({});
+  const[view,setView]=useState("day");
+  const[focusDate,setFocusDate]=useState(today0());
+  const[hiddenCats,setHiddenCats]=useState(new Set());
+  const[modal,setModal]=useState(null);
+  const[catModal,setCatModal]=useState(false);
+  const[nfcModal,setNfcModal]=useState(false);
+  const[backlogEditItem,setBacklogEditItem]=useState(null);
+  const[datePickerModal,setDatePickerModal]=useState(null);
+  const[taskStates,setTaskStates]=useState({});
+  const[now,setNow]=useState(new Date());
+  const[mobileTab,setMobileTab]=useState("day");
+  const[isMobile,setIsMobile]=useState(window.innerWidth<700);
+  const[sidebarOpen,setSidebarOpen]=useState(true);
 
   useEffect(()=>{
     const t=setInterval(()=>setNow(new Date()),30000);
     const onResize=()=>setIsMobile(window.innerWidth<700);
     window.addEventListener("resize",onResize);
-    return ()=>{ clearInterval(t); window.removeEventListener("resize",onResize); };
+    return()=>{clearInterval(t);window.removeEventListener("resize",onResize);};
   },[]);
 
   useEffect(()=>{
-    if(!userId) return;
+    if(!userId)return;
     return onSnapshot(collection(db,"users",userId,"events"),snap=>{
-      const evs=[]; snap.forEach(d=>evs.push(d.data())); setEvents(evs.length?evs:seedEvents());
+      const evs=[];snap.forEach(d=>evs.push(d.data()));setEvents(evs.length?evs:seedEvents());
     });
   },[userId]);
 
@@ -817,70 +453,36 @@ function App({userId,userEmail}) {
   },[events,cats,hiddenCats]);
 
   const getEffEv=(ev,dateStr)=>getEffectiveEvent(ev,dateStr,overrides);
-
-  const getTasksFor=(ev,dateStr)=>{
-    const key=`${ev.id}_${dateStr}`,base=ev.tasks||[],saved=taskStates[key];
-    if(!saved) return base;
-    return base.map(t=>{const s=saved.find(x=>x.id===t.id);return s?{...t,done:s.done}:t;});
-  };
-
-  const toggleTask=(evId,taskId,dateStr,done)=>{
-    const ev=events.find(e=>e.id===evId); if(!ev) return;
-    const tasks=getTasksFor(ev,dateStr).map(t=>t.id===taskId?{...t,done}:t);
-    setTaskStates(ts=>({...ts,[`${evId}_${dateStr}`]:tasks}));
-  };
-
+  const getTasksFor=(ev,dateStr)=>{const key=`${ev.id}_${dateStr}`,base=ev.tasks||[],saved=taskStates[key];if(!saved)return base;return base.map(t=>{const s=saved.find(x=>x.id===t.id);return s?{...t,done:s.done}:t;});};
+  const toggleTask=(evId,taskId,dateStr,done)=>{const ev=events.find(e=>e.id===evId);if(!ev)return;const tasks=getTasksFor(ev,dateStr).map(t=>t.id===taskId?{...t,done}:t);setTaskStates(ts=>({...ts,[`${evId}_${dateStr}`]:tasks}));};
   const saveCats=(newCats)=>{setCats(newCats);setCatModal(false);};
-
-  const saveBacklogItem=(item)=>{
-    setBacklog(bl=>bl.find(b=>b.id===item.id)?bl.map(b=>b.id===item.id?item:b):[...bl,item]);
-    setBacklogEditItem(null);
-  };
-  const deleteBacklogItem=(id)=>{ setBacklog(bl=>bl.filter(b=>b.id!==id)); setBacklogEditItem(null); };
+  const saveBacklogItem=(item)=>{setBacklog(bl=>bl.find(b=>b.id===item.id)?bl.map(b=>b.id===item.id?item:b):[...bl,item]);setBacklogEditItem(null);};
+  const deleteBacklogItem=(id)=>{setBacklog(bl=>bl.filter(b=>b.id!==id));setBacklogEditItem(null);};
   const scheduleFromBacklog=(item)=>{
     const totalMins=item.durationHrs*60+item.durationMins;
-    const startHr=9, startMin=startHr*60;
-    const endMin=startMin+totalMins;
+    const startMin=9*60,endMin=startMin+totalMins;
     const pad=(n)=>String(n).padStart(2,"0");
-    const startStr=`${pad(Math.floor(startMin/60))}:${pad(startMin%60)}`;
-    const endStr=`${pad(Math.floor(endMin/60))}:${pad(endMin%60)}`;
     setBacklogEditItem(null);
-    setDatePickerModal({item,startStr,endStr});
+    setDatePickerModal({item,startStr:`${pad(Math.floor(startMin/60))}:${pad(startMin%60)}`,endStr:`${pad(Math.floor(endMin/60))}:${pad(endMin%60)}`});
   };
 
   const saveEvent=async(ev,mode,dateStr)=>{
-    if(mode==="override"&&dateStr) {
-      const key=overrideKey(ev.id,dateStr);
-      setOverrides(ov=>({...ov,[key]:{...ev}}));
-      await setDoc(doc(db,"users",userId,"overrides",key),{...ev,_overrideDate:dateStr});
-    } else {
-      setEvents(evs=>evs.find(e=>e.id===ev.id)?evs.map(e=>e.id===ev.id?ev:e):[...evs,ev]);
-      await setDoc(doc(db,"users",userId,"events",ev.id),ev);
-    }
+    if(mode==="override"&&dateStr){const key=overrideKey(ev.id,dateStr);setOverrides(ov=>({...ov,[key]:{...ev}}));await setDoc(doc(db,"users",userId,"overrides",key),{...ev,_overrideDate:dateStr});}
+    else{setEvents(evs=>evs.find(e=>e.id===ev.id)?evs.map(e=>e.id===ev.id?ev:e):[...evs,ev]);await setDoc(doc(db,"users",userId,"events",ev.id),ev);}
     setModal(null);
   };
 
   const deleteEvent=async(id,mode,dateStr)=>{
-    if(mode==="this"&&dateStr) {
-      const base=events.find(e=>e.id===id); if(!base) return;
-      const updated={...base,deletedDates:[...(base.deletedDates||[]),dateStr]};
-      setEvents(evs=>evs.map(e=>e.id===id?updated:e));
-      await setDoc(doc(db,"users",userId,"events",id),updated);
-    } else {
-      setEvents(evs=>evs.filter(e=>e.id!==id));
-      await deleteDoc(doc(db,"users",userId,"events",id));
-    }
+    if(mode==="this"&&dateStr){const base=events.find(e=>e.id===id);if(!base)return;const updated={...base,deletedDates:[...(base.deletedDates||[]),dateStr]};setEvents(evs=>evs.map(e=>e.id===id?updated:e));await setDoc(doc(db,"users",userId,"events",id),updated);}
+    else{setEvents(evs=>evs.filter(e=>e.id!==id));await deleteDoc(doc(db,"users",userId,"events",id));}
     setModal(null);
   };
 
   const openNew=(date,hour=9)=>setModal({ev:null,date,hour,isOverride:false,overrideDate:null});
-  const openEdit=(ev,dateStr)=>{
-    const effEv=getEffEv(ev,dateStr);
-    setModal({ev:effEv,date:null,hour:null,isOverride:!!overrides[overrideKey(ev.id,dateStr)],overrideDate:dateStr});
-  };
+  const openEdit=(ev,dateStr)=>{const effEv=getEffEv(ev,dateStr);setModal({ev:effEv,date:null,hour:null,isOverride:!!overrides[overrideKey(ev.id,dateStr)],overrideDate:dateStr});};
   const signOut=()=>auth.signOut();
 
-  if(isNfcView) return <NfcSummaryPage events={events} cats={cats} taskStates={taskStates}/>;
+  if(isNfcView)return <NfcSummaryPage events={events} cats={cats} taskStates={taskStates}/>;
 
   const ws=monday(focusDate);
   const weekDays=Array.from({length:7},(_,i)=>addDays(ws,i));
@@ -896,7 +498,6 @@ function App({userId,userEmail}) {
   const sx={
     root:{display:"flex",flexDirection:"column",height:"100dvh",background:"#f5f2eb",fontFamily:"'Instrument Sans',sans-serif",color:"#1a1714",overflow:"hidden"},
     topbar:{display:"flex",alignItems:"center",background:"#fff",borderBottom:"1.5px solid #e8e4dc",flexShrink:0,height:52,paddingLeft:14,paddingRight:14,gap:8},
-    brand:{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1.1rem",letterSpacing:"-.04em",display:"flex",alignItems:"center",gap:6},
     navBtn:{width:32,height:32,background:"#f5f2eb",border:"none",borderRadius:8,cursor:"pointer",fontSize:"1rem",display:"flex",alignItems:"center",justifyContent:"center",color:"#1a1714",flexShrink:0},
     dateLbl:{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".82rem",letterSpacing:"-.02em",minWidth:isMobile?100:130,textAlign:"center"},
     viewTab:(a)=>({padding:"5px 12px",background:a?"#1a1714":"none",color:a?"#fff":"#8a8070",border:"none",borderRadius:6,fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:700,fontSize:".7rem",letterSpacing:".05em",textTransform:"uppercase",cursor:"pointer"}),
@@ -906,82 +507,28 @@ function App({userId,userEmail}) {
     statLbl:{fontSize:".55rem",fontWeight:600,letterSpacing:".07em",textTransform:"uppercase",color:"#8a8070",marginTop:2},
     dayPanel:{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"},
     dayScroll:{flex:1,overflowY:"auto",overflowX:"hidden"},
-    timeGrid:{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"relative"},
     mobileNav:{display:"flex",background:"#fff",borderTop:"1.5px solid #e8e4dc",flexShrink:0,paddingBottom:"env(safe-area-inset-bottom,16px)"},
     mobileNavBtn:(a)=>({flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"8px 0",background:"none",border:"none",cursor:"pointer",color:a?"#e8380d":"#8a8070"}),
   };
 
-  // ─ Gutter ─────────────────────────────────────────────────────────────────
   const renderGutter=(evs,hr,isWeek=false)=>{
     const hits=hourHits(evs,hr,cats),bg=gutterBg(hits),dom=dominantHit(hits);
     const borderRight=dom?`3px solid ${dom.color}22`:"1px solid #e8e4dc";
     const activeCatList=[...new Map(hits.map(h=>[h.ev.cat,h])).values()];
-    return (
+    return(
       <div style={{height:HH,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"2px 3px",borderRight,background:bg,position:"sticky",left:0,zIndex:5,overflow:"hidden",gap:1,minWidth:HH}}>
         <span style={{color:dom?dom.color:"#c0b8a8",fontWeight:800,fontSize:".58rem"}}>{hr===12?"12p":hr>12?`${hr-12}p`:`${hr}a`}</span>
-        {activeCatList.slice(0,isWeek?1:2).map(h=>{ const c=cats[h.ev.cat]; return (
-          <span key={h.ev.cat} style={{color:c.color,fontSize:isWeek?".38rem":".42rem",fontWeight:900,textTransform:"uppercase",letterSpacing:".06em",whiteSpace:"nowrap"}}>{c.label.slice(0,isWeek?4:5)}</span>
-        );})}
+        {activeCatList.slice(0,isWeek?1:2).map(h=>{const c=cats[h.ev.cat];return(<span key={h.ev.cat} style={{color:c.color,fontSize:isWeek?".38rem":".42rem",fontWeight:900,textTransform:"uppercase",letterSpacing:".06em",whiteSpace:"nowrap"}}>{c.label.slice(0,isWeek?4:5)}</span>);})}
       </div>
     );
   };
 
-  
-  const onDragMove=(clientY)=>{
-    if(!dragRef.current||!gridRef.current) return;
-    const gridRect=gridRef.current.getBoundingClientRect();
-    const totalPx=clientY-gridRect.top;
-    const totalMins=(totalPx/HH)*60+(HS*60);
-    const newStart=Math.max(HS*60,Math.min((HE-1)*60,snapToGrid(totalMins-dragRef.current.offsetMin)));
-    const newEnd=newStart+dragRef.current.dur;
-    if(newEnd>(HE*60)) return;
-    dragRef.current.moved=true;
-    dragRef.current.startMin=newStart;
-    dragRef.current.endMin=newEnd;
-    setDragging(d=>d?{...d,startMin:newStart,endMin:newEnd}:d);
-  };
-
-  const onDragEnd=()=>{
-    if(!dragRef.current) return;
-    const {evId,baseEv,dateStr,startMin,endMin,moved}=dragRef.current;
-    dragRef.current=null;
-    if(!moved){setDragging(null);return;}
-    const newStart=minsToTime(startMin),newEnd=minsToTime(endMin);
-    const effEv=getEffEv(baseEv,dateStr);
-    const updated={...effEv,start:newStart,end:newEnd};
-    setDragging(null);
-    // Save as override if repeating, else replace
-    if(baseEv.repeat!=="none"){
-      saveEvent(updated,"override",dateStr);
-    } else {
-      saveEvent(updated,"replace");
-    }
-  };
-
-  // Global pointer/touch move + end listeners while dragging
-  useEffect(()=>{
-    if(!dragging) return;
-    const onMove=(e)=>{ const y=e.touches?e.touches[0].clientY:e.clientY; onDragMove(y); };
-    const onEnd=()=>onDragEnd();
-    window.addEventListener("mousemove",onMove,{passive:false});
-    window.addEventListener("mouseup",onEnd);
-    window.addEventListener("touchmove",onMove,{passive:false});
-    window.addEventListener("touchend",onEnd);
-    return ()=>{
-      window.removeEventListener("mousemove",onMove);
-      window.removeEventListener("mouseup",onEnd);
-      window.removeEventListener("touchmove",onMove);
-      window.removeEventListener("touchend",onEnd);
-    };
-  },[dragging]);
-
-  // ─ Event block ─────────────────────────────────────────────────────────────
   const EvBlock=({ev,dateStr,top,height})=>{
     const effEv=getEffEv(ev,dateStr);
     const c=cats[effEv.cat]||{bg:"#eee",color:"#999",text:"#333",icon:"",label:""};
     const tasks=getTasksFor(effEv,dateStr);
     const pct=tasks.length?(tasks.filter(t=>t.done).length/tasks.length)*100:0;
-    return (
+    return(
       <div style={{position:"absolute",left:4,right:4,top,height,borderRadius:9,padding:"5px 9px",cursor:"pointer",background:c.bg,borderLeft:`3px solid ${c.color}`,overflow:"hidden",zIndex:2,boxShadow:"0 1px 3px rgba(0,0,0,.05)"}}
         onClick={e=>{e.stopPropagation();openEdit(ev,dateStr);}}>
         <div style={{fontSize:".5rem",fontWeight:700,textTransform:"uppercase",opacity:.6,marginBottom:1,color:c.text}}>{c.icon} {c.label}{effEv.repeat!=="none"?" ↻":""}</div>
@@ -991,7 +538,7 @@ function App({userId,userEmail}) {
           <div style={{marginTop:3}}>
             {tasks.slice(0,Math.min(tasks.length,Math.floor((height-54)/14))).map(t=>(
               <div key={t.id} style={{display:"flex",alignItems:"center",gap:4,fontSize:".58rem",marginBottom:1,color:c.text}} onClick={e=>e.stopPropagation()}>
-                <input type="checkbox" checked={t.done} onChange={e=>toggleTask(ev.id,t.id,dateStr,e.target.checked)} style={{width:10,height:10,accentColor:c.color}} />
+                <input type="checkbox" checked={t.done} onChange={e=>toggleTask(ev.id,t.id,dateStr,e.target.checked)} style={{width:10,height:10,accentColor:c.color}}/>
                 <span style={{textDecoration:t.done?"line-through":"none",opacity:t.done?.45:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.text}</span>
               </div>
             ))}
@@ -1002,48 +549,33 @@ function App({userId,userEmail}) {
     );
   };
 
-return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"relative"}}>{cols}</div>;
   const renderTimeGrid=(d)=>{
     const dateStr=fmtDate(d),evs=visibleEvs(d),cols=[];
     for(let hr=HS;hr<HE;hr++){
       cols.push(<div key={`l${hr}`}>{renderGutter(evs,hr,false)}</div>);
       const evHere=evs.filter(ev=>Math.floor(t2m(getEffEv(ev,dateStr).start)/60)===hr);
       cols.push(
-        <div key={`c${hr}`} style={{height:HH,borderBottom:"1px solid #f0ece0",position:"relative",cursor:"pointer"}} onClick={()=>!dragging&&openNew(d,hr)}>
-          {evHere.map(ev=>{ const eff=getEffEv(ev,dateStr),sm=t2m(eff.start),em=t2m(eff.end),dur=Math.max(em-sm,30),top=((sm%60)/60)*HH,height=Math.max((dur/60)*HH-4,22); return <EvBlock key={ev.id} ev={ev} dateStr={dateStr} top={top} height={height} />; })}
-          {isToday(d)&&now.getHours()===hr&&(
-            <div style={{position:"absolute",left:0,right:0,top:`${(now.getMinutes()/60)*HH}px`,height:2,background:"#e8380d",zIndex:5,pointerEvents:"none"}}>
-              <div style={{position:"absolute",left:-4,top:-4,width:10,height:10,borderRadius:"50%",background:"#e8380d"}}></div>
-            </div>
-          )}
+        <div key={`c${hr}`} style={{height:HH,borderBottom:"1px solid #f0ece0",position:"relative",cursor:"pointer"}} onClick={()=>openNew(d,hr)}>
+          {evHere.map(ev=>{const eff=getEffEv(ev,dateStr),sm=t2m(eff.start),em=t2m(eff.end),dur=Math.max(em-sm,30),top=((sm%60)/60)*HH,height=Math.max((dur/60)*HH-4,22);return <EvBlock key={ev.id} ev={ev} dateStr={dateStr} top={top} height={height}/>;})}
+          {isToday(d)&&now.getHours()===hr&&(<div style={{position:"absolute",left:0,right:0,top:`${(now.getMinutes()/60)*HH}px`,height:2,background:"#e8380d",zIndex:5,pointerEvents:"none"}}><div style={{position:"absolute",left:-4,top:-4,width:10,height:10,borderRadius:"50%",background:"#e8380d"}}></div></div>)}
         </div>
       );
     }
-    return <div ref={gridRef} style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"relative"}}>{cols}</div>;
+    return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"relative"}}>{cols}</div>;
   };
 
-  // ─ Glance ─────────────────────────────────────────────────────────────────
   const GlancePanel=()=>(
     <div style={activeView==="glance"?{flex:1,overflowY:"auto",background:"#fff",display:"flex",flexDirection:"column"}:sx.glance}>
       <div style={{padding:"14px 14px 10px",borderBottom:"1px solid #f0ece0",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div>
-          <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:".95rem"}}>Today</div>
-          <div style={{fontSize:".62rem",color:"#8a8070",fontWeight:600,marginTop:2}}>{DAYS_FULL[now.getDay()]}, {MONTHS_S[now.getMonth()]} {now.getDate()}</div>
-        </div>
+        <div><div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:".95rem"}}>Today</div><div style={{fontSize:".62rem",color:"#8a8070",fontWeight:600,marginTop:2}}>{DAYS_FULL[now.getDay()]}, {MONTHS_S[now.getMonth()]} {now.getDate()}</div></div>
         <button onClick={()=>setSidebarOpen(false)} style={{background:"none",border:"none",cursor:"pointer",color:"#c0b8a8",fontSize:"1rem",padding:4,lineHeight:1}} title="Collapse">‹</button>
       </div>
       <div style={{padding:"10px 14px",borderBottom:"1px solid #f0ece0"}}>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:".6rem",fontWeight:700,textTransform:"uppercase",color:"#8a8070",marginBottom:5}}>
-          <span>Day</span><span>{Math.round(dayProg)}%</span>
-        </div>
-        <div style={{height:4,background:"#f0ece0",borderRadius:3,overflow:"hidden"}}>
-          <div style={{width:`${dayProg}%`,height:"100%",borderRadius:3,background:activeNow.length?cats[activeNow[0].cat]?.color||"#e8380d":"#e8380d",transition:"width .4s"}}></div>
-        </div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:".6rem",fontWeight:700,textTransform:"uppercase",color:"#8a8070",marginBottom:5}}><span>Day</span><span>{Math.round(dayProg)}%</span></div>
+        <div style={{height:4,background:"#f0ece0",borderRadius:3,overflow:"hidden"}}><div style={{width:`${dayProg}%`,height:"100%",borderRadius:3,background:activeNow.length?cats[activeNow[0].cat]?.color||"#e8380d":"#e8380d",transition:"width .4s"}}></div></div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,background:"#f0ece0",flexShrink:0}}>
-        {[[todayEvs.length,"Blocks"],[totalTasks>0?Math.round((doneTasks/totalTasks)*100)+"%":"—","Done"],[activeNow.length||"—","Now"],[todayEvs.filter(e=>t2m(e.start)>nowMin).length,"Up next"]].map(([n,l])=>(
-          <div key={l} style={{background:"#fff",padding:"9px 12px"}}><div style={sx.statNum}>{n}</div><div style={sx.statLbl}>{l}</div></div>
-        ))}
+        {[[todayEvs.length,"Blocks"],[totalTasks>0?Math.round((doneTasks/totalTasks)*100)+"%":"—","Done"],[activeNow.length||"—","Now"],[todayEvs.filter(e=>t2m(e.start)>nowMin).length,"Up next"]].map(([n,l])=>(<div key={l} style={{background:"#fff",padding:"9px 12px"}}><div style={sx.statNum}>{n}</div><div style={sx.statLbl}>{l}</div></div>))}
       </div>
       <div style={{flex:1,overflowY:"auto"}}>
         {todayEvs.length===0&&<div style={{padding:14,fontSize:".75rem",color:"#8a8070",fontStyle:"italic"}}>No blocks today</div>}
@@ -1052,25 +584,11 @@ return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"r
           const isPast=em<=nowMin,isNow=sm<=nowMin&&em>nowMin;
           const tasks=getTasksFor(effEv,todayStr);
           const c=cats[effEv.cat]||{color:"#999",icon:"",label:""};
-          return (
+          return(
             <div key={ev.id} style={{padding:"9px 14px",borderBottom:"1px solid #f8f5f0",cursor:"pointer",background:isNow?"#fffaf8":"#fff",borderLeft:isNow?`3px solid ${c.color}`:"3px solid transparent",opacity:isPast?.55:1}} onClick={()=>openEdit(ev,todayStr)}>
-              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                <span style={{width:7,height:7,borderRadius:2,background:c.color,flexShrink:0}}></span>
-                <span style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{effEv.title}</span>
-                {effEv.repeat!=="none"&&<span style={{fontSize:".55rem",opacity:.3}}>↻</span>}
-              </div>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}><span style={{width:7,height:7,borderRadius:2,background:c.color,flexShrink:0}}></span><span style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{effEv.title}</span>{effEv.repeat!=="none"&&<span style={{fontSize:".55rem",opacity:.3}}>↻</span>}</div>
               <div style={{fontSize:".6rem",color:"#8a8070"}}>{effEv.start}–{effEv.end}</div>
-              {tasks.length>0&&(
-                <div style={{marginTop:5}} onClick={e=>e.stopPropagation()}>
-                  {tasks.slice(0,3).map(t=>(
-                    <label key={t.id} style={{display:"flex",alignItems:"center",gap:5,fontSize:".62rem",color:"#8a8070",cursor:"pointer",marginTop:3}}>
-                      <input type="checkbox" checked={t.done} onChange={e=>toggleTask(ev.id,t.id,todayStr,e.target.checked)} style={{width:11,height:11,accentColor:c.color}} />
-                      <span style={{textDecoration:t.done?"line-through":"none"}}>{t.text}</span>
-                    </label>
-                  ))}
-                  {tasks.length>3&&<div style={{fontSize:".58rem",color:"#8a8070",marginTop:2}}>+{tasks.length-3} more</div>}
-                </div>
-              )}
+              {tasks.length>0&&(<div style={{marginTop:5}} onClick={e=>e.stopPropagation()}>{tasks.slice(0,3).map(t=>(<label key={t.id} style={{display:"flex",alignItems:"center",gap:5,fontSize:".62rem",color:"#8a8070",cursor:"pointer",marginTop:3}}><input type="checkbox" checked={t.done} onChange={e=>toggleTask(ev.id,t.id,todayStr,e.target.checked)} style={{width:11,height:11,accentColor:c.color}}/><span style={{textDecoration:t.done?"line-through":"none"}}>{t.text}</span></label>))}{tasks.length>3&&<div style={{fontSize:".58rem",color:"#8a8070",marginTop:2}}>+{tasks.length-3} more</div>}</div>)}
             </div>
           );
         })}
@@ -1078,18 +596,13 @@ return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"r
       {!isMobile&&(
         <div style={{padding:"10px",borderTop:"1px solid #f0ece0",flexShrink:0}}>
           <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".58rem",textTransform:"uppercase",letterSpacing:".1em",color:"#8a8070",marginBottom:6}}>This Week</div>
-          {weekDays.map(d=>{
-            const evs=visibleEvs(d),isActive=sameDay(d,focusDate),isTod=isToday(d);
-            return (
-              <div key={fmtDate(d)} onClick={()=>setFocusDate(new Date(d))} style={{display:"flex",alignItems:"center",gap:7,padding:"5px 7px",borderRadius:7,cursor:"pointer",background:isActive?"#1a1714":"transparent",color:isActive?"#fff":"#1a1714",border:`1.5px solid ${isTod&&!isActive?"#e8380d":"transparent"}`,marginBottom:2}}>
-                <div style={{fontSize:".58rem",fontWeight:700,textTransform:"uppercase",opacity:.55,width:22}}>{DAYS_SHORT[d.getDay()]}</div>
-                <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:".9rem",width:18}}>{d.getDate()}</div>
-                <div style={{display:"flex",gap:2,flexWrap:"wrap",flex:1}}>
-                  {[...new Set(evs.map(e=>e.cat))].map(c=>(<span key={c} style={{width:5,height:5,borderRadius:2,background:isActive?"rgba(255,255,255,.6)":cats[c]?.color||"#999"}}></span>))}
-                </div>
-              </div>
-            );
-          })}
+          {weekDays.map(d=>{const evs=visibleEvs(d),isActive=sameDay(d,focusDate),isTod=isToday(d);return(
+            <div key={fmtDate(d)} onClick={()=>setFocusDate(new Date(d))} style={{display:"flex",alignItems:"center",gap:7,padding:"5px 7px",borderRadius:7,cursor:"pointer",background:isActive?"#1a1714":"transparent",color:isActive?"#fff":"#1a1714",border:`1.5px solid ${isTod&&!isActive?"#e8380d":"transparent"}`,marginBottom:2}}>
+              <div style={{fontSize:".58rem",fontWeight:700,textTransform:"uppercase",opacity:.55,width:22}}>{DAYS_SHORT[d.getDay()]}</div>
+              <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:".9rem",width:18}}>{d.getDate()}</div>
+              <div style={{display:"flex",gap:2,flexWrap:"wrap",flex:1}}>{[...new Set(evs.map(e=>e.cat))].map(c=>(<span key={c} style={{width:5,height:5,borderRadius:2,background:isActive?"rgba(255,255,255,.6)":cats[c]?.color||"#999"}}></span>))}</div>
+            </div>
+          );})}
         </div>
       )}
     </div>
@@ -1098,15 +611,10 @@ return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"r
   const DayView=()=>(
     <div style={sx.dayPanel}>
       <div style={{padding:"12px 16px 8px",background:"#fff",borderBottom:"1.5px solid #e8e4dc",flexShrink:0}}>
-        <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1.4rem",letterSpacing:"-.04em",lineHeight:1}}>
-          <span style={{color:visibleEvs(focusDate).length?cats[visibleEvs(focusDate)[0].cat]?.color||"#1a1714":"#1a1714"}}>{DAYS_FULL[focusDate.getDay()]}</span>
-          {", "}{MONTHS_S[focusDate.getMonth()]} {focusDate.getDate()}
-        </div>
+        <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1.4rem",letterSpacing:"-.04em",lineHeight:1}}><span style={{color:visibleEvs(focusDate).length?cats[visibleEvs(focusDate)[0].cat]?.color||"#1a1714":"#1a1714"}}>{DAYS_FULL[focusDate.getDay()]}</span>{", "}{MONTHS_S[focusDate.getMonth()]} {focusDate.getDate()}</div>
         <div style={{fontSize:".62rem",color:"#8a8070",marginTop:3}}>{visibleEvs(focusDate).length} block{visibleEvs(focusDate).length!==1?"s":""} · tap to add</div>
       </div>
-      <div style={sx.dayScroll}>
-        {renderTimeGrid(focusDate)}
-      </div>
+      <div style={sx.dayScroll}>{renderTimeGrid(focusDate)}</div>
     </div>
   );
 
@@ -1114,26 +622,15 @@ return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"r
     <div style={{flex:1,overflow:"auto"}}>
       <div style={{display:"grid",gridTemplateColumns:`${HH}px repeat(7,1fr)`,minWidth:500}}>
         <div style={{background:"#f5f2eb",borderRight:"1px solid #e8e4dc",borderBottom:"1px solid #e8e4dc",position:"sticky",top:0,zIndex:10,height:44}}></div>
-        {weekDays.map(d=>(
-          <div key={fmtDate(d)} onClick={()=>{setFocusDate(new Date(d));isMobile?setMobileTab("day"):setView("day");}}
-            style={{borderBottom:isToday(d)?"2px solid #e8380d":"1px solid #e8e4dc",borderRight:"1px solid #e8e4dc",padding:"5px 4px",textAlign:"center",position:"sticky",top:0,zIndex:9,background:"#fff",cursor:"pointer",height:44}}>
-            <div style={{fontSize:".55rem",fontWeight:700,textTransform:"uppercase",color:"#8a8070"}}>{DAYS_SHORT[d.getDay()]}</div>
-            <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1.1rem",color:isToday(d)?"#e8380d":"#1a1714"}}>{d.getDate()}</div>
-          </div>
-        ))}
+        {weekDays.map(d=>(<div key={fmtDate(d)} onClick={()=>{setFocusDate(new Date(d));isMobile?setMobileTab("day"):setView("day");}} style={{borderBottom:isToday(d)?"2px solid #e8380d":"1px solid #e8e4dc",borderRight:"1px solid #e8e4dc",padding:"5px 4px",textAlign:"center",position:"sticky",top:0,zIndex:9,background:"#fff",cursor:"pointer",height:44}}><div style={{fontSize:".55rem",fontWeight:700,textTransform:"uppercase",color:"#8a8070"}}>{DAYS_SHORT[d.getDay()]}</div><div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1.1rem",color:isToday(d)?"#e8380d":"#1a1714"}}>{d.getDate()}</div></div>))}
         {Array.from({length:HE-HS},(_,hi)=>hi+HS).map(hr=>(
           <React.Fragment key={hr}>
             <div style={{position:"sticky",left:0,zIndex:5}}>{renderGutter(weekDays.flatMap(d=>visibleEvs(d)),hr,true)}</div>
             {weekDays.map(d=>{
               const dateStr=fmtDate(d),evHere=visibleEvs(d).filter(ev=>Math.floor(t2m(getEffEv(ev,dateStr).start)/60)===hr);
-              return (
+              return(
                 <div key={fmtDate(d)+hr} style={{height:HH,borderRight:"1px solid #f0ece0",borderBottom:"1px solid #f0ece0",position:"relative",cursor:"pointer"}} onClick={()=>{setFocusDate(new Date(d));openNew(d,hr);}}>
-                  {evHere.map(ev=>{ const eff=getEffEv(ev,dateStr),sm=t2m(eff.start),em=t2m(eff.end),dur=Math.max(em-sm,30),top=((sm%60)/60)*HH,height=Math.max((dur/60)*HH-3,18); const c=cats[eff.cat]||{bg:"#eee",color:"#999",text:"#333"};
-                    return (<div key={ev.id} style={{position:"absolute",left:2,right:2,top,height,borderRadius:5,padding:"3px 5px",fontSize:".6rem",fontWeight:700,cursor:"pointer",zIndex:3,overflow:"hidden",background:c.bg,borderLeft:`2px solid ${c.color}`,color:c.text}} onClick={e=>{e.stopPropagation();openEdit(ev,dateStr);}}>
-                      <div style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{eff.title}</div>
-                      {height>26&&<div style={{fontSize:".52rem",opacity:.6}}>{eff.start}</div>}
-                    </div>);
-                  })}
+                  {evHere.map(ev=>{const eff=getEffEv(ev,dateStr),sm=t2m(eff.start),em=t2m(eff.end),dur=Math.max(em-sm,30),top=((sm%60)/60)*HH,height=Math.max((dur/60)*HH-3,18);const c=cats[eff.cat]||{bg:"#eee",color:"#999",text:"#333"};return(<div key={ev.id} style={{position:"absolute",left:2,right:2,top,height,borderRadius:5,padding:"3px 5px",fontSize:".6rem",fontWeight:700,cursor:"pointer",zIndex:3,overflow:"hidden",background:c.bg,borderLeft:`2px solid ${c.color}`,color:c.text}} onClick={e=>{e.stopPropagation();openEdit(ev,dateStr);}}><div style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{eff.title}</div>{height>26&&<div style={{fontSize:".52rem",opacity:.6}}>{eff.start}</div>}</div>);})}
                   {isToday(d)&&now.getHours()===hr&&<div style={{position:"absolute",left:0,right:0,top:`${(now.getMinutes()/60)*HH}px`,height:2,background:"#e8380d",zIndex:5,pointerEvents:"none"}}><div style={{position:"absolute",left:-3,top:-4,width:9,height:9,borderRadius:"50%",background:"#e8380d"}}></div></div>}
                 </div>
               );
@@ -1144,29 +641,15 @@ return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"r
     </div>
   );
 
-  return (
+  return(
     <div style={sx.root}>
-      {/* TOPBAR */}
       <div style={sx.topbar}>
-        <div style={sx.brand}>
-          <span style={{width:8,height:8,borderRadius:"50%",background:"#e8380d"}}></span>
-          <span>BLOCKS</span>
-        </div>
+        <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1.1rem",letterSpacing:"-.04em",display:"flex",alignItems:"center",gap:6}}><span style={{width:8,height:8,borderRadius:"50%",background:"#e8380d"}}></span><span>BLOCKS</span></div>
         <button style={sx.navBtn} onClick={()=>setFocusDate(d=>activeView==="week"?addDays(monday(d),-7):addDays(d,-1))}>‹</button>
-        <span style={sx.dateLbl}>
-          {activeView==="week"
-            ?`${MONTHS_S[ws.getMonth()]} ${ws.getDate()}–${addDays(ws,6).getDate()}`
-            :`${DAYS_SHORT[focusDate.getDay()]} ${MONTHS_S[focusDate.getMonth()]} ${focusDate.getDate()}`}
-        </span>
+        <span style={sx.dateLbl}>{activeView==="week"?`${MONTHS_S[ws.getMonth()]} ${ws.getDate()}–${addDays(ws,6).getDate()}`:`${DAYS_SHORT[focusDate.getDay()]} ${MONTHS_S[focusDate.getMonth()]} ${focusDate.getDate()}`}</span>
         <button style={sx.navBtn} onClick={()=>setFocusDate(d=>activeView==="week"?addDays(monday(d),7):addDays(d,1))}>›</button>
         <button style={{...sx.navBtn,fontSize:".6rem",fontWeight:700,width:"auto",padding:"0 8px"}} onClick={()=>setFocusDate(today0())}>Today</button>
-        {!isMobile&&(
-          <div style={{display:"flex",gap:3,background:"#f0ece0",borderRadius:7,padding:3}}>
-            <button style={sx.viewTab(view==="day")} onClick={()=>setView("day")}>Day</button>
-            <button style={sx.viewTab(view==="week")} onClick={()=>setView("week")}>Week</button>
-            <button style={sx.viewTab(view==="backlog")} onClick={()=>setView("backlog")}>📦</button>
-          </div>
-        )}
+        {!isMobile&&(<div style={{display:"flex",gap:3,background:"#f0ece0",borderRadius:7,padding:3}}><button style={sx.viewTab(view==="day")} onClick={()=>setView("day")}>Day</button><button style={sx.viewTab(view==="week")} onClick={()=>setView("week")}>Week</button><button style={sx.viewTab(view==="backlog")} onClick={()=>setView("backlog")}>📦</button></div>)}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
           {!isMobile&&<button style={sx.navBtn} onClick={()=>setNfcModal(true)} title="NFC">📡</button>}
           {!isMobile&&<button style={sx.navBtn} onClick={()=>setCatModal(true)} title="Categories">⚙</button>}
@@ -1175,32 +658,20 @@ return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"r
         </div>
       </div>
 
-      {/* FILTER BAR */}
       <div style={sx.legendBar}>
         <div style={{display:"flex",alignItems:"center",padding:"0 10px",fontSize:".58rem",fontWeight:700,textTransform:"uppercase",color:"#8a8070",borderRight:"1px solid #f0ece0",flexShrink:0}}>Filter</div>
-        {Object.entries(cats).map(([k,v])=>{
-          const hidden=hiddenCats.has(k);
-          return (
-            <div key={k} onClick={()=>setHiddenCats(prev=>{const n=new Set(prev);n.has(k)?n.delete(k):n.add(k);return n;})}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"6px 10px",fontSize:".66rem",fontWeight:700,textTransform:"uppercase",cursor:"pointer",borderRight:"1px solid #f0ece0",whiteSpace:"nowrap",userSelect:"none",opacity:hidden?.3:1,background:hidden?"transparent":v.bg+"80",transition:"all .15s"}}>
-              <span style={{width:6,height:6,borderRadius:2,background:v.color}}></span>{v.icon} {v.label}
-            </div>
-          );
-        })}
+        {Object.entries(cats).map(([k,v])=>{const hidden=hiddenCats.has(k);return(<div key={k} onClick={()=>setHiddenCats(prev=>{const n=new Set(prev);n.has(k)?n.delete(k):n.add(k);return n;})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 10px",fontSize:".66rem",fontWeight:700,textTransform:"uppercase",cursor:"pointer",borderRight:"1px solid #f0ece0",whiteSpace:"nowrap",userSelect:"none",opacity:hidden?.3:1,background:hidden?"transparent":v.bg+"80",transition:"all .15s"}}><span style={{width:6,height:6,borderRadius:2,background:v.color}}></span>{v.icon} {v.label}</div>);})}
         {hiddenCats.size>0&&<div onClick={()=>setHiddenCats(new Set())} style={{display:"flex",alignItems:"center",padding:"0 10px",fontSize:".62rem",fontWeight:700,color:"#e8380d",cursor:"pointer",marginLeft:"auto",whiteSpace:"nowrap"}}>Show all</div>}
       </div>
 
-      {/* MAIN */}
       <div style={{flex:1,display:"flex",overflow:"hidden"}}>
         {!isMobile&&(
           <>
             {view!=="week"&&view!=="backlog"&&<GlancePanel/>}
-            {view!=="week"&&view!=="backlog"&&!sidebarOpen&&(
-              <button onClick={()=>setSidebarOpen(true)} style={{width:22,flexShrink:0,background:"#fff",border:"none",borderRight:"1.5px solid #e8e4dc",cursor:"pointer",color:"#c0b8a8",fontSize:".9rem",display:"flex",alignItems:"center",justifyContent:"center"}} title="Expand">›</button>
-            )}
+            {view!=="week"&&view!=="backlog"&&!sidebarOpen&&(<button onClick={()=>setSidebarOpen(true)} style={{width:22,flexShrink:0,background:"#fff",border:"none",borderRight:"1.5px solid #e8e4dc",cursor:"pointer",color:"#c0b8a8",fontSize:".9rem",display:"flex",alignItems:"center",justifyContent:"center"}} title="Expand">›</button>)}
             {view==="day"&&<DayView/>}
             {view==="week"&&<WeekView/>}
-            {view==="backlog"&&<BacklogPanel backlog={backlog} cats={cats} onNew={()=>setBacklogEditItem({})} onEdit={setBacklogEditItem} onSchedule={scheduleFromBacklog} isMobile={isMobile}/>}
+            {view==="backlog"&&<BacklogPanel backlog={backlog} cats={cats} onNew={()=>setBacklogEditItem({})} onEdit={setBacklogEditItem} onSchedule={scheduleFromBacklog}/>}
           </>
         )}
         {isMobile&&(
@@ -1208,21 +679,15 @@ return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"r
             {mobileTab==="glance"&&<GlancePanel/>}
             {mobileTab==="day"&&<DayView/>}
             {mobileTab==="week"&&<WeekView/>}
-            {mobileTab==="backlog"&&<BacklogPanel backlog={backlog} cats={cats} onNew={()=>setBacklogEditItem({})} onEdit={setBacklogEditItem} onSchedule={scheduleFromBacklog} isMobile={isMobile}/>}
+            {mobileTab==="backlog"&&<BacklogPanel backlog={backlog} cats={cats} onNew={()=>setBacklogEditItem({})} onEdit={setBacklogEditItem} onSchedule={scheduleFromBacklog}/>}
           </>
         )}
       </div>
 
-      {/* MOBILE BOTTOM NAV */}
       {isMobile&&(
         <div style={sx.mobileNav}>
           {[["glance","📋","Today"],["day","📅","Day"],["week","🗓","Week"],["backlog","📦","Backlog"],["cats","⚙️","Cats"],["nfc","📡","NFC"]].map(([tab,icon,label])=>(
-            <button key={tab} style={sx.mobileNavBtn(mobileTab===tab)} onClick={()=>{
-              if(tab==="cats"){setCatModal(true);}
-              else if(tab==="nfc"){setNfcModal(true);}
-              else if(tab==="backlog"){setMobileTab("backlog");}
-              else setMobileTab(tab);
-            }}>
+            <button key={tab} style={sx.mobileNavBtn(mobileTab===tab)} onClick={()=>{if(tab==="cats"){setCatModal(true);}else if(tab==="nfc"){setNfcModal(true);}else setMobileTab(tab);}}>
               <span style={{fontSize:"1.1rem"}}>{icon}</span>
               <span style={{fontSize:".58rem",fontWeight:700,letterSpacing:".04em",textTransform:"uppercase"}}>{label}</span>
             </button>
@@ -1230,7 +695,6 @@ return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"r
         </div>
       )}
 
-      {/* MODALS */}
       {modal&&<BlockModal ev={modal.ev} date={modal.date||(modal.ev?new Date(modal.ev.date+"T00:00:00"):focusDate)} cats={cats} onSave={saveEvent} onDelete={deleteEvent} onClose={()=>setModal(null)} isOverride={modal.isOverride} overrideDate={modal.overrideDate}/>}
       {catModal&&<CatModal cats={cats} onSave={saveCats} onClose={()=>setCatModal(false)}/>}
       {nfcModal&&<NfcModal events={events} cats={cats} taskStates={taskStates} onClose={()=>setNfcModal(false)}/>}
@@ -1252,8 +716,8 @@ return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"r
   );
 }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<AuthWrapper />);
+    const root=ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AuthWrapper/>);
   </script>
 </body>
 </html>
