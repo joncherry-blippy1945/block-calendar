@@ -1005,21 +1005,6 @@ function App({userId,userEmail}) {
 
 ---
 
-**Fix renderTimeGrid** — search for:
-```
-onClick={()=>!dragging&&openNew(d,hr)}
-```
-Change it to:
-```
-onClick={()=>openNew(d,hr)}
-```
-
-Also in `renderTimeGrid`, change the return line from:
-```
-return <div ref={gridRef} style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"relative"}}>{cols}</div>;
-```
-To:
-```
 return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"relative"}}>{cols}</div>;
   const renderTimeGrid=(d)=>{
     const dateStr=fmtDate(d),evs=visibleEvs(d),cols=[];
