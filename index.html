@@ -797,9 +797,6 @@ function App({userId,userEmail}) {
   const [mobileTab,setMobileTab]=useState("day");
   const [isMobile,setIsMobile]=useState(window.innerWidth<700);
   const [sidebarOpen,setSidebarOpen]=useState(true);
-  const [dragging,setDragging]=useState(null); // {evId,dateStr,startMin,endMin,offsetMin,top,height,color}
-  const dragRef=useRef(null);
-  const gridRef=useRef(null);
 
   useEffect(()=>{
     const t=setInterval(()=>setNow(new Date()),30000);
@@ -929,21 +926,7 @@ function App({userId,userEmail}) {
     );
   };
 
-  // ─ Drag helpers ────────────────────────────────────────────────────────────
-  const snapToGrid=(min,snap=15)=>Math.round(min/snap)*snap;
-  const minsToTime=(m)=>{ const h=Math.floor(m/60),mn=m%60; return `${String(h).padStart(2,"0")}:${String(mn).padStart(2,"0")}`; };
-
-  const startDrag=(ev,dateStr,clientY,blockTop)=>{
-    const effEv=getEffEv(ev,dateStr);
-    const sm=t2m(effEv.start),em=t2m(effEv.end);
-    const dur=em-sm;
-    // offsetMin = how many mins into the block the finger landed
-    const pxIntoBlock=clientY-blockTop;
-    const offsetMin=Math.max(0,Math.floor((pxIntoBlock/HH)*60));
-    dragRef.current={evId:ev.id,baseEv:ev,dateStr,dur,offsetMin,startMin:sm,endMin:em,moved:false};
-    setDragging({evId:ev.id,dateStr,startMin:sm,endMin:em,color:cats[effEv.cat]?.color||"#999",bg:cats[effEv.cat]?.bg||"#eee",text:cats[effEv.cat]?.text||"#333",title:effEv.title,icon:cats[effEv.cat]?.icon||""});
-  };
-
+  
   const onDragMove=(clientY)=>{
     if(!dragRef.current||!gridRef.current) return;
     const gridRect=gridRef.current.getBoundingClientRect();
@@ -998,45 +981,16 @@ function App({userId,userEmail}) {
     const c=cats[effEv.cat]||{bg:"#eee",color:"#999",text:"#333",icon:"",label:""};
     const tasks=getTasksFor(effEv,dateStr);
     const pct=tasks.length?(tasks.filter(t=>t.done).length/tasks.length)*100:0;
-    const isDraggingThis=dragging&&dragging.evId===ev.id&&dragging.dateStr===dateStr;
-    const longPressRef=useRef(null);
-
-    const handlePressStart=(e)=>{
-      const clientY=e.touches?e.touches[0].clientY:e.clientY;
-      const rect=e.currentTarget.getBoundingClientRect();
-      longPressRef.current=setTimeout(()=>{
-        longPressRef.current=null;
-        if(navigator.vibrate) navigator.vibrate(20);
-        startDrag(ev,dateStr,clientY,rect.top);
-      },100);
-    };
-    const handlePressEnd=(e)=>{
-      if(longPressRef.current){
-        clearTimeout(longPressRef.current);
-        longPressRef.current=null;
-        if(!dragging){e.stopPropagation();openEdit(ev,dateStr);}
-      }
-    };
-    const handlePressCancel=()=>{ if(longPressRef.current){clearTimeout(longPressRef.current);longPressRef.current=null;} };
-
     return (
-      <div
-        style={{position:"absolute",left:4,right:4,top:isDraggingThis?(dragging.startMin-Math.floor(dragging.startMin/60)*60)/60*HH+(Math.floor(dragging.startMin/60)-HS)*HH:top,height,borderRadius:9,padding:"5px 9px",cursor:isDraggingThis?"grabbing":"grab",background:c.bg,borderLeft:`3px solid ${c.color}`,overflow:"hidden",zIndex:isDraggingThis?50:2,boxShadow:isDraggingThis?`0 6px 20px ${c.color}33`:"0 1px 3px rgba(0,0,0,.05)",opacity:isDraggingThis?.95:1,transform:isDraggingThis?"scale(1.01)":"scale(1)",transition:"none",userSelect:"none",WebkitUserSelect:"none",touchAction:"none"}}
-        onMouseDown={handlePressStart}
-        onMouseUp={handlePressEnd}
-        onTouchStart={handlePressStart}
-        onTouchEnd={handlePressEnd}
-        onTouchCancel={handlePressCancel}
-      >
+      <div style={{position:"absolute",left:4,right:4,top,height,borderRadius:9,padding:"5px 9px",cursor:"pointer",background:c.bg,borderLeft:`3px solid ${c.color}`,overflow:"hidden",zIndex:2,boxShadow:"0 1px 3px rgba(0,0,0,.05)"}}
+        onClick={e=>{e.stopPropagation();openEdit(ev,dateStr);}}>
         <div style={{fontSize:".5rem",fontWeight:700,textTransform:"uppercase",opacity:.6,marginBottom:1,color:c.text}}>{c.icon} {c.label}{effEv.repeat!=="none"?" ↻":""}</div>
         <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".78rem",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:c.text}}>{effEv.title}</div>
-        {height>40&&<div style={{fontSize:".57rem",opacity:.5,marginTop:1,color:c.text}}>
-          {isDraggingThis?`${minsToTime(dragging.startMin)}–${minsToTime(dragging.endMin)}`:(`${effEv.start}–${effEv.end}`)}
-        </div>}
-        {height>60&&tasks.length>0&&!isDraggingThis&&(
+        {height>40&&<div style={{fontSize:".57rem",opacity:.5,marginTop:1,color:c.text}}>{effEv.start}–{effEv.end}</div>}
+        {height>60&&tasks.length>0&&(
           <div style={{marginTop:3}}>
             {tasks.slice(0,Math.min(tasks.length,Math.floor((height-54)/14))).map(t=>(
-              <div key={t.id} style={{display:"flex",alignItems:"center",gap:4,fontSize:".58rem",marginBottom:1,color:c.text}} onMouseDown={e=>e.stopPropagation()} onTouchStart={e=>e.stopPropagation()}>
+              <div key={t.id} style={{display:"flex",alignItems:"center",gap:4,fontSize:".58rem",marginBottom:1,color:c.text}} onClick={e=>e.stopPropagation()}>
                 <input type="checkbox" checked={t.done} onChange={e=>toggleTask(ev.id,t.id,dateStr,e.target.checked)} style={{width:10,height:10,accentColor:c.color}} />
                 <span style={{textDecoration:t.done?"line-through":"none",opacity:t.done?.45:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.text}</span>
               </div>
@@ -1047,7 +1001,26 @@ function App({userId,userEmail}) {
       </div>
     );
   };
+```
 
+---
+
+**Fix renderTimeGrid** — search for:
+```
+onClick={()=>!dragging&&openNew(d,hr)}
+```
+Change it to:
+```
+onClick={()=>openNew(d,hr)}
+```
+
+Also in `renderTimeGrid`, change the return line from:
+```
+return <div ref={gridRef} style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"relative"}}>{cols}</div>;
+```
+To:
+```
+return <div style={{display:"grid",gridTemplateColumns:`${HH}px 1fr`,position:"relative"}}>{cols}</div>;
   const renderTimeGrid=(d)=>{
     const dateStr=fmtDate(d),evs=visibleEvs(d),cols=[];
     for(let hr=HS;hr<HE;hr++){
