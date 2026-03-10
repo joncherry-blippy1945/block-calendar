@@ -8,7 +8,17 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>* { box-sizing: border-box; margin: 0; padding: 0; } body { overflow: hidden; }</style>
+  <style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { overflow: hidden; }
+@media print {
+  body { overflow: visible !important; background: #fff !important; }
+  .no-print { display: none !important; }
+  #print-area { display: block !important; }
+  @page { margin: 0.75in; }
+}
+#print-area { display: none; }
+</style>
 </head>
 <body>
   <div id="root"></div>
@@ -356,30 +366,86 @@ function ScheduleDateModal({item,startStr,endStr,cats,onConfirm,onClose}){
   );
 }
 
-function NfcModal({events,cats,taskStates,onClose}){
+function NfcModal({events,cats,taskStates,userId,onClose}){
   const[phone,setPhone]=useState("");
+  const[saving,setSaving]=useState(false);
+  const[saveDone,setSaveDone]=useState(false);
+  const[loaded,setLoaded]=useState(false);
   const todayStr=fmtDate(today0());
   const nowMin=new Date().getHours()*60+new Date().getMinutes();
   const todayEvs=events.filter(e=>cats[e.cat]&&occursOn(e,today0())).sort((a,b)=>t2m(a.start)-t2m(b.start));
-  const getTasksFor=(ev)=>{const key=`${ev.id}_${todayStr}`,base=ev.tasks||[],saved=taskStates[key];if(!saved)return base;return base.map(t=>{const s=saved.find(x=>x.id===t.id);return s?{...t,done:s.done}:t;});};
-  const remaining=todayEvs.filter(ev=>t2m(ev.end)>nowMin).map(ev=>({ev,tasks:getTasksFor(ev).filter(t=>!t.done)}));
+  const remaining=todayEvs.filter(ev=>t2m(ev.end)>nowMin);
   const now=new Date();
-  const plainText=[`📅 Remaining today — ${DAYS_SHORT[now.getDay()]} ${MONTHS_S[now.getMonth()]} ${now.getDate()}`,"",
-    ...remaining.map(({ev,tasks})=>[`${cats[ev.cat]?.icon||""} ${ev.title} ${ev.start}–${ev.end}`,...tasks.map(t=>`  ☐ ${t.text}`)].join("\n")),
-    remaining.length===0?"✅ All done for today!":"",
+
+  useEffect(()=>{
+    if(!userId)return;
+    const unsub=onSnapshot(doc(db,"users",userId,"settings","nfc"),d=>{
+      if(d.exists()&&d.data().phone){setPhone(d.data().phone);}
+      setLoaded(true);
+    });
+    return unsub;
+  },[userId]);
+
+  const savePhone=async()=>{
+    if(!userId)return;
+    setSaving(true);setSaveDone(false);
+    await setDoc(doc(db,"users",userId,"settings","nfc"),{phone});
+    setSaving(false);setSaveDone(true);
+    setTimeout(()=>setSaveDone(false),2000);
+  };
+
+  const allText=[
+    `📅 ${DAYS_FULL[now.getDay()]}, ${MONTHS_F[now.getMonth()]} ${now.getDate()}`,
+    "",
+    "ALL BLOCKS TODAY:",
+    ...todayEvs.map(ev=>`${t2m(ev.end)<=nowMin?"✅":"▶"} ${ev.title}  ${ev.start}–${ev.end}`),
+    "",
+    remaining.length>0?"STILL TO GO:":"✅ All done!",
+    ...remaining.map(ev=>`• ${ev.title}  ${ev.start}–${ev.end}`),
   ].filter(Boolean).join("\n");
-  const smsHref=`sms:${phone.replace(/\D/g,"")}${phone?"&":"?"}body=${encodeURIComponent(plainText)}`;
+
+  const smsHref=`sms:${phone.replace(/\D/g,"")}${phone?"&":"?"}body=${encodeURIComponent(allText)}`;
+  const nfcUrl=`${window.location.href.split("?")[0]}?view=nfc`;
+
   return(
     <div style={M.overlay} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={M.sheet}>
-        <div style={M.sheetHead}><span style={M.sheetTitle}>📡 NFC Daily Reminder</span><button style={M.closeBtn} onClick={onClose}>✕</button></div>
-        <div style={{padding:"12px 20px",overflowY:"auto",flex:1}}>
-          <div style={{fontSize:".78rem",color:"#8a8070",marginBottom:10}}>Today's remaining blocks</div>
-          {remaining.length===0&&<div style={{padding:12,background:"#dff5ec",borderRadius:8,fontSize:".82rem",color:"#084a2e",fontWeight:600,marginBottom:10}}>✅ All done!</div>}
-          {remaining.map(({ev,tasks})=>{const c=cats[ev.cat]||{color:"#999",bg:"#eee",text:"#333"};return(<div key={ev.id} style={{padding:"10px 12px",borderRadius:9,background:c.bg,borderLeft:`3px solid ${c.color}`,marginBottom:8}}><div style={{fontWeight:700,fontSize:".85rem",color:c.text}}>{ev.title}</div><div style={{fontSize:".72rem",color:c.color,marginTop:2}}>{ev.start}–{ev.end}</div>{tasks.map(t=><div key={t.id} style={{fontSize:".75rem",color:c.text,marginTop:4,opacity:.8}}>☐ {t.text}</div>)}</div>);})}
-          <div style={{marginTop:14}}><div style={M.fieldLabel}>Your phone number (optional)</div><input style={{...M.input,marginTop:6}} type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="e.g. 5551234567"/></div>
+        <div style={M.sheetHead}><span style={M.sheetTitle}>📡 NFC Setup & Daily Text</span><button style={M.closeBtn} onClick={onClose}>✕</button></div>
+        <div style={{padding:"12px 20px",overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:14}}>
+
+          <div>
+            <div style={M.fieldLabel}>Your phone number</div>
+            <div style={{display:"flex",gap:8,marginTop:4}}>
+              <input style={{...M.input,flex:1}} type="tel" value={loaded?phone:""} onChange={e=>{setPhone(e.target.value);setSaveDone(false);}} placeholder={loaded?"e.g. 5551234567":"Loading…"} disabled={!loaded}/>
+              <button onClick={savePhone} disabled={saving||!loaded} style={{...M.secBtn,whiteSpace:"nowrap",flexShrink:0,color:saveDone?"#0ea66b":"#8a8070",borderColor:saveDone?"#0ea66b":"#e0d9c8"}}>{saving?"Saving…":saveDone?"Saved ✓":"Save"}</button>
+            </div>
+            <div style={{fontSize:".65rem",color:"#8a8070",marginTop:5}}>Saved to your account — no need to re-enter each time.</div>
+          </div>
+
+          <div>
+            <div style={M.fieldLabel}>Today — {todayEvs.length} block{todayEvs.length!==1?"s":""}</div>
+            {todayEvs.length===0&&<div style={{fontSize:".78rem",color:"#8a8070",fontStyle:"italic"}}>No blocks today</div>}
+            {todayEvs.map(ev=>{
+              const c=cats[ev.cat]||{color:"#999",bg:"#eee",text:"#333"};
+              const isPast=t2m(ev.end)<=nowMin;
+              return(<div key={ev.id} style={{padding:"8px 10px",borderRadius:8,background:isPast?"#f0ece0":c.bg,borderLeft:`3px solid ${isPast?"#c0b8a8":c.color}`,marginBottom:6,opacity:isPast?.6:1,display:"flex",alignItems:"center",gap:8}}>
+                <span>{isPast?"✅":"▶"}</span>
+                <div><div style={{fontWeight:700,fontSize:".82rem",color:isPast?"#8a8070":c.text}}>{ev.title}</div><div style={{fontSize:".68rem",color:isPast?"#8a8070":c.color}}>{ev.start}–{ev.end}</div></div>
+              </div>);
+            })}
+          </div>
+
+          <div style={{background:"#f5f2eb",borderRadius:10,padding:"12px 14px"}}>
+            <div style={M.fieldLabel}>NFC Tag URL</div>
+            <div style={{fontSize:".7rem",color:"#1a1714",wordBreak:"break-all",marginTop:4,fontFamily:"monospace",background:"#e8e4dc",borderRadius:6,padding:"8px 10px"}}>{nfcUrl}</div>
+            <div style={{fontSize:".65rem",color:"#8a8070",marginTop:6}}>Program your NFC tag with this URL. Tapping it opens your daily summary and auto-triggers a pre-filled text.</div>
+          </div>
+
         </div>
-        <div style={M.sheetFoot}><button style={M.secBtn} onClick={onClose}>Close</button><a href={smsHref} style={{...M.priBtn,textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>💬 Open in Messages</a></div>
+        <div style={M.sheetFoot}>
+          <button style={M.secBtn} onClick={onClose}>Close</button>
+          <a href={smsHref} style={{...M.priBtn,textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>💬 Send Today's Summary</a>
+        </div>
       </div>
     </div>
   );
@@ -641,9 +707,69 @@ function App({userId,userEmail}){
     </div>
   );
 
+  const printEvs=visibleEvs(focusDate);
+  const printDateStr=fmtDate(focusDate);
+
   return(
     <div style={sx.root}>
-      <div style={sx.topbar}>
+
+      {/* PRINT AREA — hidden on screen, visible when printing */}
+      <div id="print-area" style={{fontFamily:"'Instrument Sans',sans-serif",color:"#1a1714",padding:"0"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,paddingBottom:12,borderBottom:"2px solid #1a1714"}}>
+          <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1.6rem",letterSpacing:"-.04em"}}>BLOCKS</div>
+          <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:"1.1rem",color:"#8a8070",marginLeft:8}}>{DAYS_FULL[focusDate.getDay()]}, {MONTHS_F[focusDate.getMonth()]} {focusDate.getDate()}</div>
+        </div>
+
+        {/* Summary list */}
+        <div style={{marginBottom:24}}>
+          <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:".7rem",textTransform:"uppercase",letterSpacing:".1em",color:"#8a8070",marginBottom:10}}>Today's Blocks — {printEvs.length} total</div>
+          {printEvs.length===0&&<div style={{color:"#8a8070",fontStyle:"italic",fontSize:".85rem"}}>No blocks scheduled</div>}
+          {printEvs.map((ev,i)=>{
+            const eff=getEffEv(ev,printDateStr);
+            const c=cats[eff.cat]||{color:"#999",bg:"#eee",text:"#333",icon:"",label:""};
+            return(
+              <div key={ev.id} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"8px 0",borderBottom:"1px solid #f0ece0"}}>
+                <div style={{width:80,flexShrink:0,fontSize:".78rem",fontWeight:700,color:"#8a8070",paddingTop:1}}>{eff.start}–{eff.end}</div>
+                <div style={{width:10,height:10,borderRadius:3,background:c.color,flexShrink:0,marginTop:3}}></div>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".95rem"}}>{eff.title}</div>
+                  <div style={{fontSize:".68rem",color:c.color,marginTop:1}}>{c.icon} {c.label}{eff.repeat!=="none"?" · repeating":""}</div>
+                  {(eff.tasks||[]).length>0&&<div style={{marginTop:4}}>{(eff.tasks||[]).map(t=>(<div key={t.id} style={{display:"flex",alignItems:"center",gap:6,fontSize:".75rem",color:"#8a8070",marginTop:2}}><span style={{width:11,height:11,border:"1.5px solid #c0b8a8",borderRadius:2,display:"inline-block",flexShrink:0}}></span>{t.text}</div>))}</div>}
+                  {eff.notes&&<div style={{fontSize:".72rem",color:"#8a8070",marginTop:4,fontStyle:"italic"}}>{eff.notes}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Time grid */}
+        <div>
+          <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:".7rem",textTransform:"uppercase",letterSpacing:".1em",color:"#8a8070",marginBottom:10}}>Time Grid</div>
+          <div style={{display:"grid",gridTemplateColumns:"56px 1fr",position:"relative",border:"1px solid #e8e4dc",borderRadius:8,overflow:"hidden"}}>
+            {Array.from({length:HE-HS},(_,i)=>i+HS).map(hr=>{
+              const evHere=printEvs.filter(ev=>Math.floor(t2m(getEffEv(ev,printDateStr).start)/60)===hr);
+              return(
+                <React.Fragment key={hr}>
+                  <div style={{height:48,borderBottom:"1px solid #f0ece0",display:"flex",alignItems:"center",justifyContent:"center",background:"#f8f7f4",fontSize:".65rem",fontWeight:700,color:"#8a8070"}}>{hr===12?"12p":hr>12?`${hr-12}p`:`${hr}a`}</div>
+                  <div style={{height:48,borderBottom:"1px solid #f0ece0",position:"relative",background:"#fff"}}>
+                    {evHere.map(ev=>{
+                      const eff=getEffEv(ev,printDateStr),sm=t2m(eff.start),em=t2m(eff.end),c=cats[eff.cat]||{color:"#999",bg:"#eee",text:"#333"};
+                      const top=((sm%60)/60)*48,height=Math.max(((em-sm)/60)*48-2,16);
+                      return(<div key={ev.id} style={{position:"absolute",left:3,right:3,top,height,borderRadius:4,background:c.bg,borderLeft:`3px solid ${c.color}`,padding:"2px 6px",overflow:"hidden"}}>
+                        <span style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".65rem",color:c.text,whiteSpace:"nowrap"}}>{eff.title}</span>
+                      </div>);
+                    })}
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{marginTop:16,fontSize:".65rem",color:"#c0b8a8",textAlign:"right"}}>Printed from BLOCKS · {new Date().toLocaleDateString()}</div>
+      </div>
+
+      <div className="no-print" style={sx.topbar}>
         <div style={{fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:900,fontSize:"1.1rem",letterSpacing:"-.04em",display:"flex",alignItems:"center",gap:6}}><span style={{width:8,height:8,borderRadius:"50%",background:"#e8380d"}}></span><span>BLOCKS</span></div>
         <button style={sx.navBtn} onClick={()=>setFocusDate(d=>activeView==="week"?addDays(monday(d),-7):addDays(d,-1))}>‹</button>
         <span style={sx.dateLbl}>{activeView==="week"?`${MONTHS_S[ws.getMonth()]} ${ws.getDate()}–${addDays(ws,6).getDate()}`:`${DAYS_SHORT[focusDate.getDay()]} ${MONTHS_S[focusDate.getMonth()]} ${focusDate.getDate()}`}</span>
@@ -652,19 +778,20 @@ function App({userId,userEmail}){
         {!isMobile&&(<div style={{display:"flex",gap:3,background:"#f0ece0",borderRadius:7,padding:3}}><button style={sx.viewTab(view==="day")} onClick={()=>setView("day")}>Day</button><button style={sx.viewTab(view==="week")} onClick={()=>setView("week")}>Week</button><button style={sx.viewTab(view==="backlog")} onClick={()=>setView("backlog")}>📦</button></div>)}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
           {!isMobile&&<button style={sx.navBtn} onClick={()=>setNfcModal(true)} title="NFC">📡</button>}
+          {!isMobile&&<button style={sx.navBtn} onClick={()=>window.print()} title="Print">🖨️</button>}
           {!isMobile&&<button style={sx.navBtn} onClick={()=>setCatModal(true)} title="Categories">⚙</button>}
           <button style={{height:32,padding:"0 14px",background:"#e8380d",color:"#fff",border:"none",borderRadius:8,fontFamily:"'Cabinet Grotesk',sans-serif",fontWeight:800,fontSize:".8rem",cursor:"pointer"}} onClick={()=>openNew(focusDate)}>＋</button>
           <button style={{...sx.navBtn,color:"#8a8070",fontSize:".8rem"}} onClick={signOut} title="Sign out">⎋</button>
         </div>
       </div>
 
-      <div style={sx.legendBar}>
+      <div className="no-print" style={sx.legendBar}>
         <div style={{display:"flex",alignItems:"center",padding:"0 10px",fontSize:".58rem",fontWeight:700,textTransform:"uppercase",color:"#8a8070",borderRight:"1px solid #f0ece0",flexShrink:0}}>Filter</div>
         {Object.entries(cats).map(([k,v])=>{const hidden=hiddenCats.has(k);return(<div key={k} onClick={()=>setHiddenCats(prev=>{const n=new Set(prev);n.has(k)?n.delete(k):n.add(k);return n;})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 10px",fontSize:".66rem",fontWeight:700,textTransform:"uppercase",cursor:"pointer",borderRight:"1px solid #f0ece0",whiteSpace:"nowrap",userSelect:"none",opacity:hidden?.3:1,background:hidden?"transparent":v.bg+"80",transition:"all .15s"}}><span style={{width:6,height:6,borderRadius:2,background:v.color}}></span>{v.icon} {v.label}</div>);})}
         {hiddenCats.size>0&&<div onClick={()=>setHiddenCats(new Set())} style={{display:"flex",alignItems:"center",padding:"0 10px",fontSize:".62rem",fontWeight:700,color:"#e8380d",cursor:"pointer",marginLeft:"auto",whiteSpace:"nowrap"}}>Show all</div>}
       </div>
 
-      <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+      <div className="no-print" style={{flex:1,display:"flex",overflow:"hidden"}}>
         {!isMobile&&(
           <>
             {view!=="week"&&view!=="backlog"&&<GlancePanel/>}
@@ -685,7 +812,7 @@ function App({userId,userEmail}){
       </div>
 
       {isMobile&&(
-        <div style={sx.mobileNav}>
+        <div className="no-print" style={sx.mobileNav}>
           {[["glance","📋","Today"],["day","📅","Day"],["week","🗓","Week"],["backlog","📦","Backlog"],["cats","⚙️","Cats"],["nfc","📡","NFC"]].map(([tab,icon,label])=>(
             <button key={tab} style={sx.mobileNavBtn(mobileTab===tab)} onClick={()=>{if(tab==="cats"){setCatModal(true);}else if(tab==="nfc"){setNfcModal(true);}else setMobileTab(tab);}}>
               <span style={{fontSize:"1.1rem"}}>{icon}</span>
@@ -697,7 +824,7 @@ function App({userId,userEmail}){
 
       {modal&&<BlockModal ev={modal.ev} date={modal.date||(modal.ev?new Date(modal.ev.date+"T00:00:00"):focusDate)} cats={cats} onSave={saveEvent} onDelete={deleteEvent} onClose={()=>setModal(null)} isOverride={modal.isOverride} overrideDate={modal.overrideDate}/>}
       {catModal&&<CatModal cats={cats} onSave={saveCats} onClose={()=>setCatModal(false)}/>}
-      {nfcModal&&<NfcModal events={events} cats={cats} taskStates={taskStates} onClose={()=>setNfcModal(false)}/>}
+      {nfcModal&&<NfcModal events={events} cats={cats} taskStates={taskStates} userId={userId} onClose={()=>setNfcModal(false)}/>}
       {backlogEditItem!==null&&<BacklogItemModal item={Object.keys(backlogEditItem).length?backlogEditItem:null} cats={cats} onSave={saveBacklogItem} onDelete={deleteBacklogItem} onSchedule={scheduleFromBacklog} onClose={()=>setBacklogEditItem(null)}/>}
       {datePickerModal&&<ScheduleDateModal
         item={datePickerModal.item}
@@ -715,6 +842,12 @@ function App({userId,userEmail}){
     </div>
   );
 }
+
+    const root=ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AuthWrapper/>);
+  </script>
+</body>
+</html>
 
     const root=ReactDOM.createRoot(document.getElementById('root'));
     root.render(<AuthWrapper/>);
